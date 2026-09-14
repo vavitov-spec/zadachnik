@@ -19,6 +19,7 @@
     --soft: #fafaf8;
     --red: #c0392b;
     --amber: #b8860b;
+    --voice: #2f6fed;
   }
   html, body { height: 100%; }
   body {
@@ -164,11 +165,30 @@
     font-size: 13px; color: #55554f; background: #fff;
   }
   .add-row .spacer { flex: 1; }
+
+  /* Пустое поле даты: вместо системного «дд.мм.гггг» показываем серое «без даты» */
+  input[type=date].is-empty { position: relative; }
+  input[type=date].is-empty::-webkit-datetime-edit { color: transparent; }
+  input[type=date].is-empty::before {
+    content: 'без даты'; position: absolute; top: 50%; transform: translateY(-50%);
+    color: var(--muted); pointer-events: none; white-space: nowrap;
+  }
+  .add-row input[type=date].is-empty::before { left: 11px; }
+  .modal-field input[type=date].is-empty::before { left: 12px; }
+
   .btn-icon {
     width: 40px; height: 40px; border: 1px solid var(--line); background: #fff;
     border-radius: 8px; font-size: 16px; cursor: pointer; flex-shrink: 0;
   }
-  .btn-icon.listening { background: var(--red); border-color: var(--red); animation: pulse 1s infinite; }
+  #voice-btn {
+    width: 48px; height: 48px; font-size: 22px; line-height: 1;
+    background: var(--voice); border-color: var(--voice); color: #fff;
+    box-shadow: 0 2px 7px rgba(47,111,237,.32);
+  }
+  #voice-btn.listening {
+    background: var(--red); border-color: var(--red);
+    box-shadow: 0 2px 9px rgba(192,57,43,.4); animation: pulse 1s infinite;
+  }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
   .btn-add {
     border: none; background: var(--ink); color: #fff; border-radius: 8px;
@@ -288,6 +308,7 @@
   @media (max-width: 520px) {
     .btn-add { flex: 1; padding: 13px; }
     .btn-icon { width: 44px; height: 44px; }
+    #voice-btn { width: 52px; height: 52px; font-size: 24px; }
   }
 </style>
 </head>
@@ -615,8 +636,24 @@ function translateAuthError(e) {
 function showLogin() {
   document.body.classList.remove('authed');
 }
+function syncDatePlaceholder(el) {
+  if (el) el.classList.toggle('is-empty', !el.value);
+}
+
+function initDatePlaceholders() {
+  ['new-due', 'task-due-input'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    syncDatePlaceholder(el);
+    ['input', 'change', 'blur'].forEach(function(ev) {
+      el.addEventListener(ev, function() { syncDatePlaceholder(el); });
+    });
+  });
+}
+
 function showApp() {
   document.body.classList.add('authed');
+  initDatePlaceholders();
   render();
 }
 
@@ -640,6 +677,7 @@ function addTask() {
   });
   titleEl.value = '';
   document.getElementById('new-due').value = '';
+  syncDatePlaceholder(document.getElementById('new-due'));
   document.getElementById('new-priority').value = 'normal';
   titleEl.focus();
   saveTasks();
@@ -791,6 +829,7 @@ function openTaskModal(id) {
   document.getElementById('task-title-input').value = t.title;
   document.getElementById('task-desc-input').value = t.description || '';
   document.getElementById('task-due-input').value = t.due || '';
+  syncDatePlaceholder(document.getElementById('task-due-input'));
   document.getElementById('task-prio-input').value = t.priority;
   document.getElementById('task-done-input').checked = t.done;
 
