@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Задачник</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f5f5f3;
+    color: #1a1a18;
+  }
+  .hidden { display: none !important; }
+
+  /* ---------- Login ---------- */
+  #login-page {
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; background: #f5f5f3;
+  }
+  .login-box {
+    width: 320px; background: #fff; border: 1px solid #e5e5e2; border-radius: 12px;
+    padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .login-box h1 { font-size: 18px; margin: 0 0 20px; text-align: center; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: #777; margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%; font-family: inherit; font-size: 14px; padding: 9px 12px;
+    border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a18;
+  }
+  .btn-primary {
+    width: 100%; padding: 10px; border: none; background: #1a1a18; color: #fff;
+    border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .btn-primary:hover { background: #333; }
+  .link-btn {
+    width: 100%; margin-top: 10px; padding: 8px; border: none; background: none;
+    color: #777; font-family: inherit; font-size: 13px; cursor: pointer; text-decoration: underline;
+  }
+  #login-error {
+    margin-top: 14px; padding: 10px; border-radius: 8px; background: #fdf0f0;
+    color: #a33020; font-size: 13px; display: none;
+  }
+
+  /* ---------- App ---------- */
+  #app { display: none; max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+  header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
+  }
+  header h1 { font-size: 20px; margin: 0; }
+  .header-right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: #999; }
+  #save-indicator { min-width: 110px; text-align: right; }
+  #logout-btn {
+    border: none; background: none; color: #999; cursor: pointer; font-size: 13px;
+    text-decoration: underline; font-family: inherit;
+  }
+
+  .stats { font-size: 13px; color: #777; margin-bottom: 14px; }
+  .stats .overdue-count { color: #c0392b; font-weight: 600; }
+
+  /* Add-task bar */
+  .add-bar {
+    display: flex; gap: 8px; margin-bottom: 16px; background: #fff; border: 1px solid #e5e5e2;
+    border-radius: 10px; padding: 10px; flex-wrap: wrap;
+  }
+  .add-bar input[type=text] {
+    flex: 1 1 220px; min-width: 160px; border: none; font-family: inherit; font-size: 14px;
+    padding: 8px 6px; outline: none;
+  }
+  .add-bar input[type=date] {
+    border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; padding: 7px 8px; color: #555;
+  }
+  .add-bar select {
+    border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; padding: 7px 8px; color: #555;
+  }
+  .add-bar button {
+    border: none; background: #1a1a18; color: #fff; border-radius: 6px; padding: 8px 16px;
+    font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .add-bar button:hover { background: #333; }
+
+  /* Filter tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+  .tab {
+    border: none; background: none; color: #999; font-family: inherit; font-size: 13px;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  }
+  .tab.active { background: #fff; color: #1a1a18; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  /* Task list */
+  .task-list { display: flex; flex-direction: column; gap: 6px; }
+  .task-row {
+    display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e5e5e2;
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .task-row.done { opacity: .55; }
+  .task-row.overdue { border-left: 3px solid #c0392b; }
+  .task-row.due-today { border-left: 3px solid #c9932a; }
+  .task-checkbox { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; accent-color: #1a1a18; }
+  .prio-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .prio-dot.high { background: #c0392b; }
+  .prio-dot.normal { background: #c9932a; }
+  .prio-dot.low { background: #bbb; }
+  .task-title {
+    flex: 1; font-size: 14px; outline: none; padding: 2px 4px; border-radius: 4px; cursor: text;
+  }
+  .task-row.done .task-title { text-decoration: line-through; }
+  .task-title:focus { background: #f5f5f3; }
+  .task-due { font-size: 12px; color: #999; flex-shrink: 0; white-space: nowrap; }
+  .task-row.overdue .task-due { color: #c0392b; font-weight: 600; }
+  .task-row.due-today .task-due { color: #a3781f; font-weight: 600; }
+  .task-delete {
+    border: none; background: none; color: #ccc; cursor: pointer; font-size: 16px; line-height: 1;
+    padding: 2px 4px; flex-shrink: 0; opacity: 0; transition: opacity .1s;
+  }
+  .task-row:hover .task-delete { opacity: 1; }
+  .task-delete:hover { color: #c0392b; }
+
+  .empty-state { text-align: center; color: #aaa; font-size: 14px; padding: 40px 0; }
+</style>
+</head>
+<body>
+
+<div id="login-page">
+  <div class="login-box">
+    <h1>Задачник — вход</h1>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input type="password" id="login-password" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')handleLogin()">
+    </div>
+    <button class="btn-primary" onclick="handleLogin()">Войти</button>
+    <button class="link-btn" onclick="handleRegister()">Первый раз здесь — зарегистрироваться</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <h1>Задачник</h1>
+    <div class="header-right">
+      <span id="save-indicator"></span>
+      <button id="logout-btn" onclick="handleLogout()">Выйти</button>
+    </div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="add-bar">
+    <input type="text" id="new-title" placeholder="Новая задача…" onkeydown="if(event.key==='Enter')addTask()">
+    <input type="date" id="new-due">
+    <select id="new-priority">
+      <option value="normal" selected>Обычный</option>
+      <option value="high">Высокий</option>
+      <option value="low">Низкий</option>
+    </select>
+    <button onclick="addTask()">Добавить</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-filter="active" onclick="setFilter('active')">Активные</button>
+    <button class="tab" data-filter="done" onclick="setFilter('done')">Завершённые</button>
+    <button class="tab" data-filter="all" onclick="setFilter('all')">Все</button>
+  </div>
+
+  <div class="task-list" id="task-list"></div>
+</div>
+
+<script>
+(function() {
+  var VER = '10.12.0';
+  var scripts = [
+    'https://www.gstatic.com/firebasejs/' + VER + '/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/' + VER + '/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/' + VER + '/firebase-firestore-compat.js'
+  ];
+  function loadNext(i) {
+    if (i >= scripts.length) { initFirebase(); return; }
+    var s = document.createElement('script');
+    s.src = scripts[i];
+    s.onload = function() { loadNext(i + 1); };
+    s.onerror = function() { console.error('Failed to load Firebase script:', scripts[i]); loadNext(i + 1); };
+    document.head.appendChild(s);
+  }
+  loadNext(0);
+})();
+
+var tasks = [];
+var filter = 'active';
+var firebaseUid = null;
+
+function initFirebase() {
+  firebase.initializeApp({
+    apiKey: "AIzaSyDXkHVg3ucKGiG6QF3SFxds7MuTJ95Wx60",
+    authDomain: "bdds-1.firebaseapp.com",
+    projectId: "bdds-1",
+    storageBucket: "bdds-1.firebasestorage.app",
+    messagingSenderId: "94953276486",
+    appId: "1:94953276486:web:6c2df15276b2ea13cd7647"
+  });
+  window.db = firebase.firestore();
+  window.auth = firebase.auth();
+
+  var _unsubAuth = window.auth.onAuthStateChanged(function(user) {
+    _unsubAuth();
+    if (user) {
+      firebaseUid = user.uid;
+      loadTasks().then(showApp);
+    } else {
+      showLogin();
+    }
+  });
+}
+
+function _lsKey() { return firebaseUid ? ('tasks_cache_' + firebaseUid) : 'tasks_cache'; }
+
+function loadTasks() {
+  return new Promise(function(resolve) {
+    var lsData = null;
+    try {
+      var raw = localStorage.getItem(_lsKey());
+      if (raw) lsData = JSON.parse(raw);
+    } catch(e) {}
+    var lsValid = lsData && Array.isArray(lsData.tasks);
+
+    function apply(d) {
+      tasks = (d && Array.isArray(d.tasks)) ? d.tasks : [];
+    }
+
+    var settled = false;
+    var timer = setTimeout(function() {
+      if (settled) return;
+      settled = true;
+      apply(lsData);
+      resolve();
+    }, 6000);
+
+    window.db.doc('tasks/' + firebaseUid).get()
+      .then(function(snap) {
+        var fbData = snap.exists ? snap.data() : null;
+        var fbValid = fbData && Array.isArray(fbData.tasks);
+        var d = null;
+        if (fbValid && lsValid) {
+          d = (lsData.updatedAt || 0) > (fbData.updatedAt || 0) ? lsData : fbData;
+        } else if (fbValid) {
+          d = fbData;
+        } else if (lsValid) {
+          d = lsData;
+        }
+        if (settled) return;
+        settled = true; clearTimeout(timer);
+        apply(d);
+        resolve();
+      })
+      .catch(function(e) {
+        if (settled) return;
+        settled = true; clearTimeout(timer);
+        console.error('[loadTasks] server error, fallback to localStorage:', e);
+        apply(lsData);
+        resolve();
+      });
+  });
+}
+
+var _saveTimer = null;
+function _setSaveIndicator(state) {
+  var el = document.getElementById('save-indicator');
+  if (!el) return;
+  if (state === 'saving') { el.textContent = '⏳ Сохранение…'; el.style.color = '#aaa'; }
+  else if (state === 'saved') { el.textContent = '✓ Сохранено'; el.style.color = '#0a6e4e'; setTimeout(function(){ el.textContent=''; }, 2000); }
+  else { el.textContent = '⚠ Ошибка сохранения'; el.style.color = '#c0392b'; }
+}
+
+function saveTasks() {
+  var payload = { tasks: tasks, updatedAt: Date.now() };
+  try { localStorage.setItem(_lsKey(), JSON.stringify(payload)); } catch(e) {}
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function() {
+    if (!firebaseUid) return;
+    _setSaveIndicator('saving');
+    window.db.doc('tasks/' + firebaseUid).set(payload)
+      .then(function() { _setSaveIndicator('saved'); })
+      .catch(function(e) { console.error('Save error:', e); _setSaveIndicator('error'); });
+  }, 500);
+}
+
+/* ---------- Auth ---------- */
+function showLoginError(msg) {
+  var el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideLoginError() {
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function handleLogin() {
+  hideLoginError();
+  var email = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  if (!email || !password) { showLoginError('Введите email и пароль'); return; }
+  window.auth.signInWithEmailAndPassword(email, password)
+    .catch(function(e) { showLoginError(translateAuthError(e)); });
+}
+
+function handleRegister() {
+  hideLoginError();
+  var email = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  if (!email || !password) { showLoginError('Введите email и пароль'); return; }
+  if (password.length < 6) { showLoginError('Пароль должен быть не короче 6 символов'); return; }
+  window.auth.createUserWithEmailAndPassword(email, password)
+    .catch(function(e) { showLoginError(translateAuthError(e)); });
+}
+
+function handleLogout() {
+  window.auth.signOut().then(function() {
+    tasks = [];
+    firebaseUid = null;
+  });
+}
+
+function translateAuthError(e) {
+  var code = e && e.code;
+  if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') return 'Неверный email или пароль';
+  if (code === 'auth/user-not-found') return 'Пользователь не найден';
+  if (code === 'auth/email-already-in-use') return 'Этот email уже зарегистрирован — просто войдите';
+  if (code === 'auth/invalid-email') return 'Некорректный email';
+  if (code === 'auth/weak-password') return 'Пароль слишком простой';
+  return 'Ошибка: ' + (e && e.message ? e.message : e);
+}
+
+function showLogin() {
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+function showApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  render();
+}
+
+/* ---------- Task operations ---------- */
+function addTask() {
+  var titleEl = document.getElementById('new-title');
+  var title = titleEl.value.trim();
+  if (!title) return;
+  var due = document.getElementById('new-due').value || null;
+  var priority = document.getElementById('new-priority').value;
+  tasks.push({
+    id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    title: title,
+    done: false,
+    priority: priority,
+    due: due,
+    createdAt: Date.now(),
+    doneAt: null
+  });
+  titleEl.value = '';
+  document.getElementById('new-due').value = '';
+  document.getElementById('new-priority').value = 'normal';
+  titleEl.focus();
+  saveTasks();
+  render();
+}
+
+function toggleDone(id) {
+  var t = tasks.find(function(x) { return x.id === id; });
+  if (!t) return;
+  t.done = !t.done;
+  t.doneAt = t.done ? Date.now() : null;
+  saveTasks();
+  render();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(function(x) { return x.id !== id; });
+  saveTasks();
+  render();
+}
+
+function editTitle(id, el) {
+  var t = tasks.find(function(x) { return x.id === id; });
+  if (!t) return;
+  var newTitle = el.textContent.trim();
+  if (!newTitle) { el.textContent = t.title; return; }
+  if (newTitle !== t.title) { t.title = newTitle; saveTasks(); }
+}
+
+function setFilter(f) {
+  filter = f;
+  render();
+}
+
+/* ---------- Rendering ---------- */
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function formatDue(due) {
+  var parts = due.split('-');
+  return parts[2] + '.' + parts[1] + '.' + parts[0].slice(2);
+}
+
+var prioRank = { high: 0, normal: 1, low: 2 };
+
+function render() {
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function(t) { t.classList.toggle('active', t.dataset.filter === filter); });
+
+  var today = todayStr();
+  var visible = tasks.filter(function(t) {
+    if (filter === 'active') return !t.done;
+    if (filter === 'done') return t.done;
+    return true;
+  });
+
+  visible.sort(function(a, b) {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    if (!!a.due !== !!b.due) return a.due ? -1 : 1;
+    if (a.due && b.due && a.due !== b.due) return a.due < b.due ? -1 : 1;
+    if (prioRank[a.priority] !== prioRank[b.priority]) return prioRank[a.priority] - prioRank[b.priority];
+    return a.createdAt - b.createdAt;
+  });
+
+  var listEl = document.getElementById('task-list');
+  listEl.innerHTML = '';
+
+  if (visible.length === 0) {
+    var msg = filter === 'done' ? 'Завершённых задач пока нет' : filter === 'active' ? 'Активных задач нет — можно отдохнуть' : 'Задач пока нет';
+    listEl.innerHTML = '<div class="empty-state">' + msg + '</div>';
+  } else {
+    visible.forEach(function(t) {
+      var row = document.createElement('div');
+      row.className = 'task-row' + (t.done ? ' done' : '');
+      if (!t.done && t.due) {
+        if (t.due < today) row.classList.add('overdue');
+        else if (t.due === today) row.classList.add('due-today');
+      }
+
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'task-checkbox';
+      cb.checked = t.done;
+      cb.onclick = function() { toggleDone(t.id); };
+      row.appendChild(cb);
+
+      var dot = document.createElement('div');
+      dot.className = 'prio-dot ' + t.priority;
+      row.appendChild(dot);
+
+      var title = document.createElement('div');
+      title.className = 'task-title';
+      title.contentEditable = 'true';
+      title.textContent = t.title;
+      title.onblur = function() { editTitle(t.id, title); };
+      title.onkeydown = function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); title.blur(); }
+      };
+      row.appendChild(title);
+
+      if (t.due) {
+        var due = document.createElement('div');
+        due.className = 'task-due';
+        due.textContent = formatDue(t.due);
+        row.appendChild(due);
+      }
+
+      var del = document.createElement('button');
+      del.className = 'task-delete';
+      del.textContent = '×';
+      del.onclick = function() { deleteTask(t.id); };
+      row.appendChild(del);
+
+      listEl.appendChild(row);
+    });
+  }
+
+  var activeCount = tasks.filter(function(t) { return !t.done; }).length;
+  var overdueCount = tasks.filter(function(t) { return !t.done && t.due && t.due < today; }).length;
+  var statsEl = document.getElementById('stats');
+  statsEl.innerHTML = 'Активных: ' + activeCount +
+    (overdueCount > 0 ? ' · <span class="overdue-count">просрочено: ' + overdueCount + '</span>' : '');
+}
+</script>
+</body>
+</html>
