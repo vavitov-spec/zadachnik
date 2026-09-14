@@ -98,6 +98,17 @@
     padding: 2px 4px; opacity: .4; flex-shrink: 0;
   }
   .proj.active .proj-edit { opacity: .65; }
+  .proj-drag {
+    flex-shrink: 0; cursor: grab; font-size: 12px; line-height: 1; padding: 3px 1px;
+    color: inherit; opacity: .3; letter-spacing: -1px;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .proj.active .proj-drag { opacity: .6; }
+  .proj.dragging {
+    opacity: .75; background: #e6e6e1; box-shadow: 0 3px 10px rgba(0,0,0,.12);
+  }
+  .proj.dragging .proj-drag { cursor: grabbing; }
   .proj:active { background: #e6e6e1; }
   .proj.active:active { background: var(--ink); }
 
@@ -641,6 +652,78 @@ function selectProject(id) {
   render();
 }
 
+/* ---------- Перетаскивание проектов в левом меню ---------- */
+var _projDrag = null;
+var _projDragMoved = false;
+
+function projDragStart(e) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  var row = e.currentTarget.parentNode;
+  var list = document.getElementById('projects-list');
+  _projDrag = {
+    row: row,
+    list: list,
+    horizontal: getComputedStyle(list).flexDirection === 'row',
+    moved: false
+  };
+  _projDragMoved = false;
+  row.classList.add('dragging');
+  try { list.setPointerCapture(e.pointerId); } catch (_) {}
+  list.addEventListener('pointermove', projDragMove);
+  list.addEventListener('pointerup', projDragEnd);
+  list.addEventListener('pointercancel', projDragEnd);
+}
+
+function projDragMove(e) {
+  var d = _projDrag;
+  if (!d) return;
+  e.preventDefault();
+  d.moved = true;
+  var pos = d.horizontal ? e.clientX : e.clientY;
+  var others = Array.prototype.filter.call(
+    d.list.querySelectorAll('.proj'),
+    function(r) { return r !== d.row; }
+  );
+  var before = null;
+  for (var i = 0; i < others.length; i++) {
+    var b = others[i].getBoundingClientRect();
+    var mid = d.horizontal ? b.left + b.width / 2 : b.top + b.height / 2;
+    if (pos < mid) { before = others[i]; break; }
+  }
+  if (before) d.list.insertBefore(d.row, before);
+  else d.list.appendChild(d.row);
+}
+
+function projDragEnd(e) {
+  var d = _projDrag;
+  if (!d) return;
+  _projDrag = null;
+  d.row.classList.remove('dragging');
+  d.list.removeEventListener('pointermove', projDragMove);
+  d.list.removeEventListener('pointerup', projDragEnd);
+  d.list.removeEventListener('pointercancel', projDragEnd);
+  try { d.list.releasePointerCapture(e.pointerId); } catch (_) {}
+  if (!d.moved) return;
+
+  // гасим клик, который браузер пошлёт строке сразу после перетаскивания
+  _projDragMoved = true;
+  setTimeout(function() { _projDragMoved = false; }, 0);
+
+  var order = Array.prototype.map.call(d.list.querySelectorAll('.proj'),
+    function(r) { return r.dataset.id; });
+  var ordered = [];
+  order.forEach(function(id) {
+    var p = projects.find(function(x) { return x.id === id; });
+    if (p && ordered.indexOf(p) === -1) ordered.push(p);
+  });
+  projects.forEach(function(p) { if (ordered.indexOf(p) === -1) ordered.push(p); });
+  projects = ordered;
+  saveTasks();
+  render();
+}
+
 function addProject() {
   var name = prompt('Название проекта:');
   if (!name || !name.trim()) return;
@@ -779,7 +862,16 @@ function render() {
   projects.forEach(function(p) {
     var row = document.createElement('button');
     row.className = 'proj' + (currentProject === p.id ? ' active' : '');
-    row.onclick = function() { selectProject(p.id); };
+    row.dataset.id = p.id;
+    row.onclick = function() { if (!_projDragMoved) selectProject(p.id); };
+
+    var grip = document.createElement('span');
+    grip.className = 'proj-drag';
+    grip.textContent = '⠿';
+    grip.title = 'Потяните, чтобы переставить проект';
+    grip.addEventListener('pointerdown', projDragStart);
+    grip.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); });
+    row.appendChild(grip);
 
     var name = document.createElement('span');
     name.className = 'proj-name';
