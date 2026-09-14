@@ -47,9 +47,13 @@
   /* ---------- App ---------- */
   #app { display: none; max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
   header {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 12px;
   }
-  header h1 { font-size: 20px; margin: 0; }
+  .logo {
+    font-size: 12px; font-weight: 700; color: #1a1a18; letter-spacing: 2px; text-transform: uppercase;
+    min-width: 60px;
+  }
+  header h1 { font-size: 20px; margin: 0; flex: 1; }
   .header-right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: #999; }
   #save-indicator { min-width: 110px; text-align: right; }
   #logout-btn {
@@ -149,6 +153,7 @@
 
 <div id="app">
   <header>
+    <div class="logo">ВЕКТОР</div>
     <h1>Задачник</h1>
     <div class="header-right">
       <span id="save-indicator"></span>
