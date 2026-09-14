@@ -80,6 +80,11 @@
     font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
   }
   .add-bar button:hover { background: #333; }
+  #voice-btn {
+    background: #555; padding: 8px 12px; min-width: auto; font-size: 16px; line-height: 1;
+  }
+  #voice-btn.listening { background: #c0392b; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
   /* Filter tabs */
   .tabs { display: flex; gap: 4px; margin-bottom: 14px; }
@@ -161,6 +166,7 @@
       <option value="high">Высокий</option>
       <option value="low">Низкий</option>
     </select>
+    <button id="voice-btn" onclick="toggleVoice()" title="Диктовать задачу">🎤</button>
     <button onclick="addTask()">Добавить</button>
   </div>
 
@@ -195,6 +201,38 @@
 var tasks = [];
 var filter = 'active';
 var firebaseUid = null;
+var recognition = null;
+var isListening = false;
+
+// Инициализация Web Speech API
+if (typeof webkitSpeechRecognition !== 'undefined') {
+  recognition = new webkitSpeechRecognition();
+  recognition.lang = 'ru-RU';
+  recognition.continuous = false;
+  recognition.onstart = function() {
+    isListening = true;
+    document.getElementById('voice-btn').classList.add('listening');
+  };
+  recognition.onend = function() {
+    isListening = false;
+    document.getElementById('voice-btn').classList.remove('listening');
+  };
+  recognition.onerror = function(e) {
+    console.error('Speech recognition error:', e.error);
+    document.getElementById('voice-btn').classList.remove('listening');
+    alert('Ошибка распознавания речи: ' + e.error);
+  };
+  recognition.onresult = function(e) {
+    var transcript = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    var titleEl = document.getElementById('new-title');
+    titleEl.value = (titleEl.value.trim() + ' ' + transcript.trim()).trim();
+    titleEl.focus();
+    addTask();
+  };
+}
 
 function initFirebase() {
   firebase.initializeApp({
@@ -397,6 +435,18 @@ function editTitle(id, el) {
 function setFilter(f) {
   filter = f;
   render();
+}
+
+function toggleVoice() {
+  if (!recognition) {
+    alert('Голосовой ввод не поддерживается в вашем браузере');
+    return;
+  }
+  if (isListening) {
+    recognition.stop();
+  } else {
+    recognition.start();
+  }
 }
 
 /* ---------- Rendering ---------- */
