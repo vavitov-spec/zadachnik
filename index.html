@@ -82,10 +82,10 @@
   .sidebar-projects { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
   .proj {
     display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
     border: none; background: none; border-radius: 9px; cursor: pointer;
     font-size: 14px; color: #5f5f59; text-align: left;
   }
-  .proj:hover { background: #efefeb; }
   .proj.active { background: var(--ink); color: #fff; font-weight: 600; }
   .proj-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .proj-count {
@@ -94,17 +94,30 @@
   }
   .proj.active .proj-count { background: rgba(255,255,255,.2); color: #fff; }
   .proj-edit {
-    border: none; background: none; color: inherit; cursor: pointer; font-size: 12px;
-    padding: 0 2px; opacity: 0; flex-shrink: 0;
+    border: none; background: none; color: inherit; cursor: pointer; font-size: 13px;
+    padding: 2px 4px; opacity: .4; flex-shrink: 0;
   }
-  .proj:hover .proj-edit, .proj.active .proj-edit { opacity: .55; }
-  .proj-edit:hover { opacity: 1 !important; }
+  .proj.active .proj-edit { opacity: .65; }
+  .proj:active { background: #e6e6e1; }
+  .proj.active:active { background: var(--ink); }
+
+  /* Hover-эффекты только для мыши. На тач-экранах :hover «залипает»:
+     первое касание отрабатывает как наведение, и клик срабатывает лишь со второго раза. */
+  @media (hover: hover) and (pointer: fine) {
+    .proj:hover { background: #efefeb; }
+    .proj.active:hover { background: var(--ink); }
+    .proj-edit { opacity: 0; }
+    .proj:hover .proj-edit, .proj.active .proj-edit { opacity: .55; }
+    .proj-edit:hover { opacity: 1 !important; }
+    .task-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .btn-icon:hover { background: #f7f7f5; }
+    .sidebar-add button:hover { border-color: #a8a8a2; color: #55554f; }
+  }
   .sidebar-add { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
   .sidebar-add button {
     width: 100%; padding: 10px; border: 1px dashed #c8c8c2; background: none;
     color: var(--muted); border-radius: 9px; font-size: 13px; cursor: pointer;
   }
-  .sidebar-add button:hover { border-color: #a8a8a2; color: #55554f; }
 
   /* ---------- Main ---------- */
   .main { flex: 1; overflow-y: auto; }
@@ -138,7 +151,6 @@
     width: 40px; height: 40px; border: 1px solid var(--line); background: #fff;
     border-radius: 8px; font-size: 16px; cursor: pointer; flex-shrink: 0;
   }
-  .btn-icon:hover { background: #f7f7f5; }
   .btn-icon.listening { background: var(--red); border-color: var(--red); animation: pulse 1s infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
   .btn-add {
@@ -165,7 +177,6 @@
     border: 1px solid var(--line); border-left: 3px solid transparent; border-radius: 10px;
     padding: 14px; cursor: pointer; transition: box-shadow .12s;
   }
-  .task-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
   .task-row.overdue { border-left-color: var(--red); }
   .task-row.due-today { border-left-color: var(--amber); }
   .task-row.done { opacity: .5; }
