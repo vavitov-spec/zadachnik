@@ -112,12 +112,21 @@
     .task-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
     .btn-icon:hover { background: #f7f7f5; }
     .sidebar-add button:hover { border-color: #a8a8a2; color: #55554f; }
+    #logout-btn:hover { background: #ebebe7; color: var(--ink); }
   }
   .sidebar-add { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
   .sidebar-add button {
     width: 100%; padding: 10px; border: 1px dashed #c8c8c2; background: none;
     color: var(--muted); border-radius: 9px; font-size: 13px; cursor: pointer;
   }
+
+  .sidebar-footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  #logout-btn {
+    width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 9px;
+    color: var(--muted); cursor: pointer; font-size: 13px; text-align: left;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  #logout-btn:active { background: #ebebe7; }
 
   /* ---------- Main ---------- */
   .main { flex: 1; overflow-y: auto; }
@@ -126,10 +135,7 @@
   header h1 { font-size: 25px; margin: 0; letter-spacing: -.4px; }
   .header-right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); }
   #save-indicator { min-width: 100px; text-align: right; font-size: 12px; }
-  #logout-btn {
-    border: none; background: none; color: var(--muted); cursor: pointer; font-size: 13px;
-    text-decoration: underline;
-  }
+
   .stats { font-size: 13px; color: var(--muted); margin-top: 6px; }
   .stats .overdue-count { color: var(--red); font-weight: 600; }
 
@@ -262,6 +268,8 @@
     .proj { width: auto; white-space: nowrap; padding: 9px 14px; background: #ebebe7; }
     .proj-edit { display: none; }
     .sidebar-add { border: none; margin: 0; padding: 0; flex-shrink: 0; }
+    .sidebar-footer { border: none; margin: 0; padding: 0; flex-shrink: 0; }
+    #logout-btn { width: auto; padding: 9px 12px; white-space: nowrap; }
     .sidebar-add button { padding: 9px 14px; white-space: nowrap; }
     .main-inner { padding: 22px 16px 110px; }
     header h1 { font-size: 21px; }
@@ -302,6 +310,9 @@
     <div class="sidebar-add">
       <button onclick="addProject()">+ Новый проект</button>
     </div>
+    <div class="sidebar-footer">
+      <button id="logout-btn" onclick="handleLogout()">Выйти</button>
+    </div>
   </aside>
 
   <main class="main">
@@ -310,7 +321,6 @@
         <h1 id="project-title">Задачник</h1>
         <div class="header-right">
           <span id="save-indicator"></span>
-          <button id="logout-btn" onclick="handleLogout()">Выйти</button>
         </div>
       </header>
       <div class="stats" id="stats"></div>
