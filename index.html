@@ -128,6 +128,36 @@
   .task-delete:hover { color: #c0392b; }
 
   .empty-state { text-align: center; color: #aaa; font-size: 14px; padding: 40px 0; }
+
+  /* Task detail modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.3); z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh;
+    overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  }
+  .modal-header { padding: 20px; border-bottom: 1px solid #e5e5e2; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { margin: 0; font-size: 18px; }
+  .modal-close { border: none; background: none; font-size: 24px; color: #999; cursor: pointer; padding: 0; }
+  .modal-body { padding: 20px; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 12px; color: #777; margin-bottom: 6px; font-weight: 600; }
+  .modal-field textarea, .modal-field input, .modal-field select {
+    width: 100%; font-family: inherit; font-size: 14px; padding: 10px; border: 1px solid #ddd;
+    border-radius: 6px; box-sizing: border-box;
+  }
+  .modal-field textarea { resize: vertical; min-height: 80px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions button {
+    flex: 1; padding: 10px; border: none; border-radius: 6px; font-family: inherit; cursor: pointer; font-size: 14px;
+  }
+  .btn-delete { background: #fdf0f0; color: #c0392b; }
+  .btn-save { background: #1a1a18; color: #fff; }
+  .task-row { cursor: pointer; }
+  .task-row:hover { background: #fafaf8; }
 </style>
 </head>
 <body>
@@ -161,6 +191,12 @@
     </div>
   </header>
 
+  <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <span style="font-size: 12px; color: #777; font-weight: 600;">Проект:</span>
+    <div id="projects-list" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+    <button onclick="addProject()" style="border: 1px dashed #999; background: none; color: #999; border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: inherit;">+ Новый</button>
+  </div>
+
   <div class="stats" id="stats"></div>
 
   <div class="add-bar">
@@ -182,6 +218,47 @@
   </div>
 
   <div class="task-list" id="task-list"></div>
+
+  <!-- Task detail modal -->
+  <div class="modal-overlay" id="task-modal" onclick="if(event.target.id==='task-modal')closeTaskModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Детали задачи</h2>
+        <button class="modal-close" onclick="closeTaskModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label>Название</label>
+          <input type="text" id="task-title-input" placeholder="Название задачи">
+        </div>
+        <div class="modal-field">
+          <label>Описание</label>
+          <textarea id="task-desc-input" placeholder="Подробное описание (опционально)"></textarea>
+        </div>
+        <div class="modal-field">
+          <label>Срок</label>
+          <input type="date" id="task-due-input">
+        </div>
+        <div class="modal-field">
+          <label>Важность</label>
+          <select id="task-prio-input">
+            <option value="low">Низкий</option>
+            <option value="normal">Обычный</option>
+            <option value="high">Высокий</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>
+            <input type="checkbox" id="task-done-input"> Выполнено
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-delete" onclick="deleteCurrentTask()">Удалить</button>
+          <button class="btn-save" onclick="saveTaskModal()">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -204,10 +281,13 @@
 })();
 
 var tasks = [];
+var projects = [];
+var currentProject = null;
 var filter = 'active';
 var firebaseUid = null;
 var recognition = null;
 var isListening = false;
+var currentTaskId = null;
 
 // Инициализация Web Speech API
 if (typeof webkitSpeechRecognition !== 'undefined') {
@@ -275,6 +355,11 @@ function loadTasks() {
 
     function apply(d) {
       tasks = (d && Array.isArray(d.tasks)) ? d.tasks : [];
+      projects = (d && Array.isArray(d.projects)) ? d.projects : [];
+      if (projects.length === 0) {
+        projects = [{id: 'default', name: 'Основное'}];
+      }
+      currentProject = projects[0].id;
     }
 
     var settled = false;
@@ -322,7 +407,7 @@ function _setSaveIndicator(state) {
 }
 
 function saveTasks() {
-  var payload = { tasks: tasks, updatedAt: Date.now() };
+  var payload = { tasks: tasks, projects: projects, currentProject: currentProject, updatedAt: Date.now() };
   try { localStorage.setItem(_lsKey(), JSON.stringify(payload)); } catch(e) {}
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function() {
@@ -400,6 +485,8 @@ function addTask() {
   tasks.push({
     id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     title: title,
+    description: '',
+    projectId: currentProject,
     done: false,
     priority: priority,
     due: due,
@@ -410,6 +497,24 @@ function addTask() {
   document.getElementById('new-due').value = '';
   document.getElementById('new-priority').value = 'normal';
   titleEl.focus();
+  saveTasks();
+  render();
+}
+
+function selectProject(id) {
+  currentProject = id;
+  saveTasks();
+  render();
+}
+
+function addProject() {
+  var name = prompt('Название проекта:');
+  if (!name || !name.trim()) return;
+  projects.push({
+    id: 'p_' + Date.now(),
+    name: name.trim()
+  });
+  currentProject = projects[projects.length - 1].id;
   saveTasks();
   render();
 }
@@ -454,6 +559,46 @@ function toggleVoice() {
   }
 }
 
+function openTaskModal(id) {
+  var t = tasks.find(function(x) { return x.id === id; });
+  if (!t) return;
+  currentTaskId = id;
+  document.getElementById('task-title-input').value = t.title;
+  document.getElementById('task-desc-input').value = t.description || '';
+  document.getElementById('task-due-input').value = t.due || '';
+  document.getElementById('task-prio-input').value = t.priority;
+  document.getElementById('task-done-input').checked = t.done;
+  document.getElementById('task-modal').classList.add('visible');
+}
+
+function closeTaskModal() {
+  currentTaskId = null;
+  document.getElementById('task-modal').classList.remove('visible');
+}
+
+function saveTaskModal() {
+  if (!currentTaskId) return;
+  var t = tasks.find(function(x) { return x.id === currentTaskId; });
+  if (!t) return;
+  t.title = document.getElementById('task-title-input').value.trim() || t.title;
+  t.description = document.getElementById('task-desc-input').value;
+  t.due = document.getElementById('task-due-input').value || null;
+  t.priority = document.getElementById('task-prio-input').value;
+  var wasDone = t.done;
+  t.done = document.getElementById('task-done-input').checked;
+  if (!wasDone && t.done) t.doneAt = Date.now();
+  else if (wasDone && !t.done) t.doneAt = null;
+  saveTasks();
+  closeTaskModal();
+  render();
+}
+
+function deleteCurrentTask() {
+  if (!currentTaskId || !confirm('Удалить задачу?')) return;
+  deleteTask(currentTaskId);
+  closeTaskModal();
+}
+
 /* ---------- Rendering ---------- */
 function todayStr() {
   var d = new Date();
@@ -468,11 +613,24 @@ function formatDue(due) {
 var prioRank = { high: 0, normal: 1, low: 2 };
 
 function render() {
+  // Render projects
+  var projList = document.getElementById('projects-list');
+  projList.innerHTML = '';
+  projects.forEach(function(p) {
+    var btn = document.createElement('button');
+    btn.textContent = p.name;
+    btn.style.cssText = 'border: none; padding: 6px 12px; border-radius: 6px; font-family: inherit; font-size: 12px; cursor: pointer; ' +
+      (currentProject === p.id ? 'background: #1a1a18; color: #fff; font-weight: 600;' : 'background: #e5e5e2; color: #555;');
+    btn.onclick = function() { selectProject(p.id); };
+    projList.appendChild(btn);
+  });
+
   var tabs = document.querySelectorAll('.tab');
   tabs.forEach(function(t) { t.classList.toggle('active', t.dataset.filter === filter); });
 
   var today = todayStr();
   var visible = tasks.filter(function(t) {
+    if (t.projectId !== currentProject) return false;
     if (filter === 'active') return !t.done;
     if (filter === 'done') return t.done;
     return true;
@@ -514,12 +672,8 @@ function render() {
 
       var title = document.createElement('div');
       title.className = 'task-title';
-      title.contentEditable = 'true';
       title.textContent = t.title;
-      title.onblur = function() { editTitle(t.id, title); };
-      title.onkeydown = function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); title.blur(); }
-      };
+      title.onclick = function(e) { e.stopPropagation(); openTaskModal(t.id); };
       row.appendChild(title);
 
       if (t.due) {
@@ -539,8 +693,8 @@ function render() {
     });
   }
 
-  var activeCount = tasks.filter(function(t) { return !t.done; }).length;
-  var overdueCount = tasks.filter(function(t) { return !t.done && t.due && t.due < today; }).length;
+  var activeCount = tasks.filter(function(t) { return t.projectId === currentProject && !t.done; }).length;
+  var overdueCount = tasks.filter(function(t) { return t.projectId === currentProject && !t.done && t.due && t.due < today; }).length;
   var statsEl = document.getElementById('stats');
   statsEl.innerHTML = 'Активных: ' + activeCount +
     (overdueCount > 0 ? ' · <span class="overdue-count">просрочено: ' + overdueCount + '</span>' : '');
