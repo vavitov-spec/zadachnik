@@ -45,7 +45,17 @@
   }
 
   /* ---------- App ---------- */
-  #app { display: none; max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+  #app { display: none; display: flex; flex-direction: row; height: 100vh; }
+  .sidebar { width: 200px; background: #fafaf8; border-right: 1px solid #e5e5e2; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; }
+  .sidebar-header { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px; }
+  .sidebar-projects { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .sidebar-project { padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; border: none; background: none; text-align: left; font-family: inherit; color: #666; }
+  .sidebar-project:hover { background: #f0f0ee; }
+  .sidebar-project.active { background: #1a1a18; color: #fff; font-weight: 600; }
+  .sidebar-add { margin-top: 8px; }
+  .sidebar-add button { width: 100%; padding: 7px; border: 1px dashed #999; background: none; color: #999; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 24px 16px 80px; }
+  @media (max-width: 768px) { .sidebar { width: 150px; padding: 12px; } }
   header {
     display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 12px;
   }
@@ -182,22 +192,25 @@
 </div>
 
 <div id="app">
-  <header>
-    <div class="logo">ВЕКТОР</div>
-    <h1>Задачник</h1>
-    <div class="header-right">
-      <span id="save-indicator"></span>
-      <button id="logout-btn" onclick="handleLogout()">Выйти</button>
+  <div class="sidebar">
+    <div class="logo" style="margin-bottom: 16px;">ВЕКТОР</div>
+    <div class="sidebar-header">Проекты</div>
+    <div class="sidebar-projects" id="projects-list"></div>
+    <div class="sidebar-add">
+      <button onclick="addProject()">+ Новый проект</button>
     </div>
-  </header>
-
-  <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-    <span style="font-size: 12px; color: #777; font-weight: 600;">Проект:</span>
-    <div id="projects-list" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
-    <button onclick="addProject()" style="border: 1px dashed #999; background: none; color: #999; border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: inherit;">+ Новый</button>
   </div>
 
-  <div class="stats" id="stats"></div>
+  <div class="main-content">
+    <header>
+      <h1>Задачник</h1>
+      <div class="header-right">
+        <span id="save-indicator"></span>
+        <button id="logout-btn" onclick="handleLogout()">Выйти</button>
+      </div>
+    </header>
+
+    <div class="stats" id="stats"></div>
 
   <div class="add-bar">
     <input type="text" id="new-title" placeholder="Новая задача…" onkeydown="if(event.key==='Enter')addTask()">
@@ -217,7 +230,8 @@
     <button class="tab" data-filter="all" onclick="setFilter('all')">Все</button>
   </div>
 
-  <div class="task-list" id="task-list"></div>
+    <div class="task-list" id="task-list"></div>
+  </div>
 
   <!-- Task detail modal -->
   <div class="modal-overlay" id="task-modal" onclick="if(event.target.id==='task-modal')closeTaskModal()">
@@ -613,14 +627,13 @@ function formatDue(due) {
 var prioRank = { high: 0, normal: 1, low: 2 };
 
 function render() {
-  // Render projects
+  // Render projects in sidebar
   var projList = document.getElementById('projects-list');
   projList.innerHTML = '';
   projects.forEach(function(p) {
     var btn = document.createElement('button');
+    btn.className = 'sidebar-project' + (currentProject === p.id ? ' active' : '');
     btn.textContent = p.name;
-    btn.style.cssText = 'border: none; padding: 6px 12px; border-radius: 6px; font-family: inherit; font-size: 12px; cursor: pointer; ' +
-      (currentProject === p.id ? 'background: #1a1a18; color: #fff; font-weight: 600;' : 'background: #e5e5e2; color: #555;');
     btn.onclick = function() { selectProject(p.id); };
     projList.appendChild(btn);
   });
