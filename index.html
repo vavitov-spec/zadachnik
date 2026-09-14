@@ -3,178 +3,270 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Задачник</title>
+<title>Задачник — ВЕКТОР</title>
+<meta name="theme-color" content="#f5f5f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Задачник">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231a1a18'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
   * { box-sizing: border-box; }
+  :root {
+    --bg: #f5f5f3;
+    --panel: #ffffff;
+    --line: #e6e6e2;
+    --ink: #1a1a18;
+    --muted: #8a8a84;
+    --soft: #fafaf8;
+    --red: #c0392b;
+    --amber: #b8860b;
+  }
+  html, body { height: 100%; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    background: #f5f5f3;
-    color: #1a1a18;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
   }
-  .hidden { display: none !important; }
+  button, input, select, textarea { font-family: inherit; }
 
   /* ---------- Login ---------- */
   #login-page {
     display: flex; align-items: center; justify-content: center;
-    height: 100vh; background: #f5f5f3;
+    height: 100%; background: var(--bg);
   }
+  body.authed #login-page { display: none; }
   .login-box {
-    width: 320px; background: #fff; border: 1px solid #e5e5e2; border-radius: 12px;
-    padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    width: 340px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
   }
-  .login-box h1 { font-size: 18px; margin: 0 0 20px; text-align: center; }
+  .login-logo { font-size: 12px; font-weight: 800; letter-spacing: 3px; text-align: center; color: var(--ink); }
+  .login-box h1 { font-size: 19px; margin: 8px 0 22px; text-align: center; font-weight: 600; }
   .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 12px; color: #777; margin-bottom: 5px; }
-  .field input, .field select {
-    width: 100%; font-family: inherit; font-size: 14px; padding: 9px 12px;
-    border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a18;
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .field input {
+    width: 100%; font-size: 15px; padding: 11px 13px;
+    border: 1px solid #ddd; border-radius: 9px; background: #fff; color: var(--ink);
   }
+  .field input:focus { outline: none; border-color: #bbb; }
   .btn-primary {
-    width: 100%; padding: 10px; border: none; background: #1a1a18; color: #fff;
-    border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+    width: 100%; padding: 12px; border: none; background: var(--ink); color: #fff;
+    border-radius: 9px; font-size: 15px; font-weight: 500; cursor: pointer;
   }
   .btn-primary:hover { background: #333; }
   .link-btn {
-    width: 100%; margin-top: 10px; padding: 8px; border: none; background: none;
-    color: #777; font-family: inherit; font-size: 13px; cursor: pointer; text-decoration: underline;
+    width: 100%; margin-top: 12px; padding: 8px; border: none; background: none;
+    color: var(--muted); font-size: 13px; cursor: pointer; text-decoration: underline;
   }
   #login-error {
-    margin-top: 14px; padding: 10px; border-radius: 8px; background: #fdf0f0;
+    margin-top: 14px; padding: 11px; border-radius: 9px; background: #fdf0f0;
     color: #a33020; font-size: 13px; display: none;
   }
 
-  /* ---------- App ---------- */
-  #app { display: none; display: flex; flex-direction: row; height: 100vh; }
-  .sidebar { width: 200px; background: #fafaf8; border-right: 1px solid #e5e5e2; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; }
-  .sidebar-header { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px; }
-  .sidebar-projects { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-  .sidebar-project { padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; border: none; background: none; text-align: left; font-family: inherit; color: #666; }
-  .sidebar-project:hover { background: #f0f0ee; }
-  .sidebar-project.active { background: #1a1a18; color: #fff; font-weight: 600; }
-  .sidebar-add { margin-top: 8px; }
-  .sidebar-add button { width: 100%; padding: 7px; border: 1px dashed #999; background: none; color: #999; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
-  .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 24px 16px 80px; }
-  @media (max-width: 768px) { .sidebar { width: 150px; padding: 12px; } }
-  header {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 12px;
+  /* ---------- App shell ---------- */
+  #app { display: none; height: 100%; }
+  body.authed #app { display: flex; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 240px; flex-shrink: 0; background: var(--soft); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; padding: 22px 14px 16px;
   }
-  .logo {
-    font-size: 12px; font-weight: 700; color: #1a1a18; letter-spacing: 2px; text-transform: uppercase;
-    min-width: 60px;
+  .sidebar .logo { padding: 0 10px 20px; line-height: 1.3; }
+  .sidebar .logo b { display: block; font-size: 13px; font-weight: 800; letter-spacing: 3px; }
+  .sidebar .logo span { font-size: 12px; color: var(--muted); letter-spacing: .2px; }
+  .sidebar-header {
+    font-size: 11px; color: #a8a8a2; text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 700; padding: 0 10px; margin-bottom: 8px;
   }
-  header h1 { font-size: 20px; margin: 0; flex: 1; }
-  .header-right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: #999; }
-  #save-indicator { min-width: 110px; text-align: right; }
+  .sidebar-projects { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+  .proj {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px;
+    border: none; background: none; border-radius: 9px; cursor: pointer;
+    font-size: 14px; color: #5f5f59; text-align: left;
+  }
+  .proj:hover { background: #efefeb; }
+  .proj.active { background: var(--ink); color: #fff; font-weight: 600; }
+  .proj-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .proj-count {
+    font-size: 11px; color: #9a9a94; background: #eaeae6; border-radius: 10px;
+    padding: 2px 7px; flex-shrink: 0;
+  }
+  .proj.active .proj-count { background: rgba(255,255,255,.2); color: #fff; }
+  .proj-edit {
+    border: none; background: none; color: inherit; cursor: pointer; font-size: 12px;
+    padding: 0 2px; opacity: 0; flex-shrink: 0;
+  }
+  .proj:hover .proj-edit, .proj.active .proj-edit { opacity: .55; }
+  .proj-edit:hover { opacity: 1 !important; }
+  .sidebar-add { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+  .sidebar-add button {
+    width: 100%; padding: 10px; border: 1px dashed #c8c8c2; background: none;
+    color: var(--muted); border-radius: 9px; font-size: 13px; cursor: pointer;
+  }
+  .sidebar-add button:hover { border-color: #a8a8a2; color: #55554f; }
+
+  /* ---------- Main ---------- */
+  .main { flex: 1; overflow-y: auto; }
+  .main-inner { max-width: 720px; margin: 0 auto; padding: 30px 26px 110px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header h1 { font-size: 25px; margin: 0; letter-spacing: -.4px; }
+  .header-right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); }
+  #save-indicator { min-width: 100px; text-align: right; font-size: 12px; }
   #logout-btn {
-    border: none; background: none; color: #999; cursor: pointer; font-size: 13px;
-    text-decoration: underline; font-family: inherit;
+    border: none; background: none; color: var(--muted); cursor: pointer; font-size: 13px;
+    text-decoration: underline;
   }
+  .stats { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .stats .overdue-count { color: var(--red); font-weight: 600; }
 
-  .stats { font-size: 13px; color: #777; margin-bottom: 14px; }
-  .stats .overdue-count { color: #c0392b; font-weight: 600; }
+  /* ---------- Add task ---------- */
+  .add-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; margin: 20px 0 18px; box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  }
+  .add-title {
+    width: 100%; border: none; outline: none; font-size: 15px; padding: 6px 4px; background: none;
+  }
+  .add-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .add-row input[type=date], .add-row select {
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px;
+    font-size: 13px; color: #55554f; background: #fff;
+  }
+  .add-row .spacer { flex: 1; }
+  .btn-icon {
+    width: 40px; height: 40px; border: 1px solid var(--line); background: #fff;
+    border-radius: 8px; font-size: 16px; cursor: pointer; flex-shrink: 0;
+  }
+  .btn-icon:hover { background: #f7f7f5; }
+  .btn-icon.listening { background: var(--red); border-color: var(--red); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
+  .btn-add {
+    border: none; background: var(--ink); color: #fff; border-radius: 8px;
+    padding: 11px 20px; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .btn-add:hover { background: #333; }
 
-  /* Add-task bar */
-  .add-bar {
-    display: flex; gap: 8px; margin-bottom: 16px; background: #fff; border: 1px solid #e5e5e2;
-    border-radius: 10px; padding: 10px; flex-wrap: wrap;
+  /* ---------- Tabs ---------- */
+  .tabs {
+    display: inline-flex; gap: 2px; background: #ececea; padding: 3px;
+    border-radius: 10px; margin-bottom: 16px;
   }
-  .add-bar input[type=text] {
-    flex: 1 1 220px; min-width: 160px; border: none; font-family: inherit; font-size: 14px;
-    padding: 8px 6px; outline: none;
-  }
-  .add-bar input[type=date] {
-    border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; padding: 7px 8px; color: #555;
-  }
-  .add-bar select {
-    border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; padding: 7px 8px; color: #555;
-  }
-  .add-bar button {
-    border: none; background: #1a1a18; color: #fff; border-radius: 6px; padding: 8px 16px;
-    font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
-  }
-  .add-bar button:hover { background: #333; }
-  #voice-btn {
-    background: #555; padding: 8px 12px; min-width: auto; font-size: 16px; line-height: 1;
-  }
-  #voice-btn.listening { background: #c0392b; animation: pulse 1s infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-
-  /* Filter tabs */
-  .tabs { display: flex; gap: 4px; margin-bottom: 14px; }
   .tab {
-    border: none; background: none; color: #999; font-family: inherit; font-size: 13px;
-    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    border: none; background: none; color: #7a7a74; font-size: 13px;
+    padding: 7px 15px; border-radius: 8px; cursor: pointer;
   }
-  .tab.active { background: #fff; color: #1a1a18; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .tab.active { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 
-  /* Task list */
-  .task-list { display: flex; flex-direction: column; gap: 6px; }
+  /* ---------- Task list ---------- */
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
   .task-row {
-    display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e5e5e2;
-    border-radius: 8px; padding: 10px 12px;
+    display: flex; align-items: flex-start; gap: 12px; background: var(--panel);
+    border: 1px solid var(--line); border-left: 3px solid transparent; border-radius: 10px;
+    padding: 14px; cursor: pointer; transition: box-shadow .12s;
   }
-  .task-row.done { opacity: .55; }
-  .task-row.overdue { border-left: 3px solid #c0392b; }
-  .task-row.due-today { border-left: 3px solid #c9932a; }
-  .task-checkbox { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; accent-color: #1a1a18; }
-  .prio-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .prio-dot.high { background: #c0392b; }
-  .prio-dot.normal { background: #c9932a; }
-  .prio-dot.low { background: #bbb; }
-  .task-title {
-    flex: 1; font-size: 14px; outline: none; padding: 2px 4px; border-radius: 4px; cursor: text;
+  .task-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .task-row.overdue { border-left-color: var(--red); }
+  .task-row.due-today { border-left-color: var(--amber); }
+  .task-row.done { opacity: .5; }
+  .task-checkbox {
+    width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink);
+    cursor: pointer; flex-shrink: 0;
   }
+  .task-main { flex: 1; min-width: 0; }
+  .task-title { font-size: 15px; line-height: 1.35; }
   .task-row.done .task-title { text-decoration: line-through; }
-  .task-title:focus { background: #f5f5f3; }
-  .task-due { font-size: 12px; color: #999; flex-shrink: 0; white-space: nowrap; }
-  .task-row.overdue .task-due { color: #c0392b; font-weight: 600; }
-  .task-row.due-today .task-due { color: #a3781f; font-weight: 600; }
-  .task-delete {
-    border: none; background: none; color: #ccc; cursor: pointer; font-size: 16px; line-height: 1;
-    padding: 2px 4px; flex-shrink: 0; opacity: 0; transition: opacity .1s;
+  .task-desc {
+    font-size: 13px; color: var(--muted); margin-top: 5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .task-row:hover .task-delete { opacity: 1; }
-  .task-delete:hover { color: #c0392b; }
+  .task-meta { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+  .pill {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #f1f1ed;
+    color: #6e6e68; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pill.overdue { background: #fdeeec; color: var(--red); font-weight: 600; }
+  .pill.today { background: #fbf3e2; color: #96690f; font-weight: 600; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot.high { background: var(--red); }
+  .dot.normal { background: var(--amber); }
+  .dot.low { background: #c3c3bd; }
+  .task-del {
+    border: none; background: none; color: #c9c9c3; font-size: 19px; line-height: 1;
+    cursor: pointer; padding: 0 2px; flex-shrink: 0;
+  }
+  .task-del:hover { color: var(--red); }
+  .empty-state { text-align: center; color: #b0b0aa; font-size: 14px; padding: 56px 20px; }
 
-  .empty-state { text-align: center; color: #aaa; font-size: 14px; padding: 40px 0; }
-
-  /* Task detail modal */
+  /* ---------- Modal ---------- */
   .modal-overlay {
-    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,.3); z-index: 1000; align-items: center; justify-content: center;
+    display: none; position: fixed; inset: 0; background: rgba(26,26,24,.35);
+    z-index: 1000; align-items: center; justify-content: center; padding: 20px;
   }
   .modal-overlay.visible { display: flex; }
   .modal {
-    background: #fff; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh;
-    overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    background: #fff; border-radius: 14px; max-width: 520px; width: 100%; max-height: 85vh;
+    overflow-y: auto; box-shadow: 0 8px 28px rgba(0,0,0,.18);
   }
-  .modal-header { padding: 20px; border-bottom: 1px solid #e5e5e2; display: flex; justify-content: space-between; align-items: center; }
-  .modal-header h2 { margin: 0; font-size: 18px; }
-  .modal-close { border: none; background: none; font-size: 24px; color: #999; cursor: pointer; padding: 0; }
-  .modal-body { padding: 20px; }
-  .modal-field { margin-bottom: 16px; }
-  .modal-field label { display: block; font-size: 12px; color: #777; margin-bottom: 6px; font-weight: 600; }
-  .modal-field textarea, .modal-field input, .modal-field select {
-    width: 100%; font-family: inherit; font-size: 14px; padding: 10px; border: 1px solid #ddd;
-    border-radius: 6px; box-sizing: border-box;
+  .modal-header {
+    padding: 18px 22px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
   }
-  .modal-field textarea { resize: vertical; min-height: 80px; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-  .modal-actions button {
-    flex: 1; padding: 10px; border: none; border-radius: 6px; font-family: inherit; cursor: pointer; font-size: 14px;
+  .modal-header h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .modal-close { border: none; background: none; font-size: 26px; color: #b0b0aa; cursor: pointer; padding: 0; line-height: 1; }
+  .modal-close:hover { color: var(--ink); }
+  .modal-body { padding: 22px; }
+  .modal-field { margin-bottom: 18px; }
+  .modal-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 7px; font-weight: 600; }
+  .modal-field textarea, .modal-field input[type=text], .modal-field input[type=date], .modal-field select {
+    width: 100%; font-size: 15px; padding: 11px; border: 1px solid #ddd; border-radius: 9px;
   }
-  .btn-delete { background: #fdf0f0; color: #c0392b; }
-  .btn-save { background: #1a1a18; color: #fff; }
-  .task-row { cursor: pointer; }
-  .task-row:hover { background: #fafaf8; }
+  .modal-field textarea { resize: vertical; min-height: 92px; line-height: 1.45; }
+  .modal-row { display: flex; gap: 12px; }
+  .modal-row .modal-field { flex: 1; }
+  .check-row {
+    display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer;
+    padding: 12px; background: var(--soft); border-radius: 9px; margin-bottom: 18px;
+  }
+  .check-row input { width: 18px; height: 18px; accent-color: var(--ink); cursor: pointer; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions button { padding: 12px; border: none; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 500; }
+  .btn-delete { background: #fdf0f0; color: var(--red); flex: 0 0 auto; padding-left: 20px; padding-right: 20px; }
+  .btn-delete:hover { background: #fbe3e3; }
+  .btn-save { background: var(--ink); color: #fff; flex: 1; }
+  .btn-save:hover { background: #333; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 860px) {
+    #app { flex-direction: column; }
+    .sidebar {
+      width: 100%; flex-direction: row; align-items: center; gap: 8px;
+      padding: 10px 14px; border-right: none; border-bottom: 1px solid var(--line);
+      overflow-x: auto; flex-shrink: 0;
+    }
+    .sidebar .logo { padding: 0 6px 0 0; }
+    .sidebar .logo span { display: none; }
+    .sidebar-header { display: none; }
+    .sidebar-projects { flex-direction: row; flex: 0 0 auto; gap: 6px; overflow: visible; }
+    .proj { width: auto; white-space: nowrap; padding: 9px 14px; background: #ebebe7; }
+    .proj-edit { display: none; }
+    .sidebar-add { border: none; margin: 0; padding: 0; flex-shrink: 0; }
+    .sidebar-add button { padding: 9px 14px; white-space: nowrap; }
+    .main-inner { padding: 22px 16px 110px; }
+    header h1 { font-size: 21px; }
+  }
+  @media (max-width: 520px) {
+    .btn-add { flex: 1; padding: 13px; }
+    .btn-icon { width: 44px; height: 44px; }
+  }
 </style>
 </head>
 <body>
 
 <div id="login-page">
   <div class="login-box">
-    <h1>Задачник — вход</h1>
+    <div class="login-logo">ВЕКТОР</div>
+    <h1>Задачник</h1>
     <div class="field">
       <label>Email</label>
       <input type="email" id="login-email" placeholder="your@email.com"
@@ -192,53 +284,58 @@
 </div>
 
 <div id="app">
-  <div class="sidebar">
-    <div class="logo" style="margin-bottom: 16px;">ВЕКТОР</div>
+  <aside class="sidebar">
+    <div class="logo"><b>ВЕКТОР</b><span>Задачник</span></div>
     <div class="sidebar-header">Проекты</div>
     <div class="sidebar-projects" id="projects-list"></div>
     <div class="sidebar-add">
       <button onclick="addProject()">+ Новый проект</button>
     </div>
-  </div>
+  </aside>
 
-  <div class="main-content">
-    <header>
-      <h1>Задачник</h1>
-      <div class="header-right">
-        <span id="save-indicator"></span>
-        <button id="logout-btn" onclick="handleLogout()">Выйти</button>
+  <main class="main">
+    <div class="main-inner">
+      <header>
+        <h1 id="project-title">Задачник</h1>
+        <div class="header-right">
+          <span id="save-indicator"></span>
+          <button id="logout-btn" onclick="handleLogout()">Выйти</button>
+        </div>
+      </header>
+      <div class="stats" id="stats"></div>
+
+      <div class="add-card">
+        <input type="text" class="add-title" id="new-title" placeholder="Что нужно сделать?"
+          onkeydown="if(event.key==='Enter')addTask()">
+        <div class="add-row">
+          <input type="date" id="new-due" title="Срок">
+          <select id="new-priority" title="Важность">
+            <option value="normal" selected>Обычный</option>
+            <option value="high">Высокий</option>
+            <option value="low">Низкий</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-icon" id="voice-btn" onclick="toggleVoice()" title="Диктовать задачу">🎤</button>
+          <button class="btn-add" onclick="addTask()">Добавить</button>
+        </div>
       </div>
-    </header>
 
-    <div class="stats" id="stats"></div>
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-filter="active" onclick="setFilter('active')">Активные</button>
+        <button class="tab" data-filter="done" onclick="setFilter('done')">Завершённые</button>
+        <button class="tab" data-filter="all" onclick="setFilter('all')">Все</button>
+      </div>
 
-  <div class="add-bar">
-    <input type="text" id="new-title" placeholder="Новая задача…" onkeydown="if(event.key==='Enter')addTask()">
-    <input type="date" id="new-due">
-    <select id="new-priority">
-      <option value="normal" selected>Обычный</option>
-      <option value="high">Высокий</option>
-      <option value="low">Низкий</option>
-    </select>
-    <button id="voice-btn" onclick="toggleVoice()" title="Диктовать задачу">🎤</button>
-    <button onclick="addTask()">Добавить</button>
-  </div>
-
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-filter="active" onclick="setFilter('active')">Активные</button>
-    <button class="tab" data-filter="done" onclick="setFilter('done')">Завершённые</button>
-    <button class="tab" data-filter="all" onclick="setFilter('all')">Все</button>
-  </div>
-
-    <div class="task-list" id="task-list"></div>
-  </div>
+      <div class="task-list" id="task-list"></div>
+    </div>
+  </main>
 
   <!-- Task detail modal -->
   <div class="modal-overlay" id="task-modal" onclick="if(event.target.id==='task-modal')closeTaskModal()">
     <div class="modal">
       <div class="modal-header">
-        <h2>Детали задачи</h2>
-        <button class="modal-close" onclick="closeTaskModal()">×</button>
+        <h2>Задача</h2>
+        <button class="modal-close" onclick="closeTaskModal()">&times;</button>
       </div>
       <div class="modal-body">
         <div class="modal-field">
@@ -247,25 +344,29 @@
         </div>
         <div class="modal-field">
           <label>Описание</label>
-          <textarea id="task-desc-input" placeholder="Подробное описание (опционально)"></textarea>
+          <textarea id="task-desc-input" placeholder="Подробности, контакты, что именно сделать…"></textarea>
+        </div>
+        <div class="modal-row">
+          <div class="modal-field">
+            <label>Срок</label>
+            <input type="date" id="task-due-input">
+          </div>
+          <div class="modal-field">
+            <label>Важность</label>
+            <select id="task-prio-input">
+              <option value="high">Высокий</option>
+              <option value="normal">Обычный</option>
+              <option value="low">Низкий</option>
+            </select>
+          </div>
         </div>
         <div class="modal-field">
-          <label>Срок</label>
-          <input type="date" id="task-due-input">
+          <label>Проект</label>
+          <select id="task-project-input"></select>
         </div>
-        <div class="modal-field">
-          <label>Важность</label>
-          <select id="task-prio-input">
-            <option value="low">Низкий</option>
-            <option value="normal">Обычный</option>
-            <option value="high">Высокий</option>
-          </select>
-        </div>
-        <div class="modal-field">
-          <label>
-            <input type="checkbox" id="task-done-input"> Выполнено
-          </label>
-        </div>
+        <label class="check-row">
+          <input type="checkbox" id="task-done-input"> Задача выполнена
+        </label>
         <div class="modal-actions">
           <button class="btn-delete" onclick="deleteCurrentTask()">Удалить</button>
           <button class="btn-save" onclick="saveTaskModal()">Сохранить</button>
@@ -480,12 +581,10 @@ function translateAuthError(e) {
 }
 
 function showLogin() {
-  document.getElementById('login-page').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
+  document.body.classList.remove('authed');
 }
 function showApp() {
-  document.getElementById('login-page').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  document.body.classList.add('authed');
   render();
 }
 
@@ -524,11 +623,27 @@ function selectProject(id) {
 function addProject() {
   var name = prompt('Название проекта:');
   if (!name || !name.trim()) return;
-  projects.push({
-    id: 'p_' + Date.now(),
-    name: name.trim()
-  });
+  projects.push({ id: 'p_' + Date.now(), name: name.trim() });
   currentProject = projects[projects.length - 1].id;
+  saveTasks();
+  render();
+}
+
+function renameProject(id) {
+  var p = projects.find(function(x) { return x.id === id; });
+  if (!p) return;
+  var name = prompt('Название проекта (очистите поле, чтобы удалить проект):', p.name);
+  if (name === null) return;
+  if (!name.trim()) {
+    if (projects.length === 1) { alert('Нельзя удалить единственный проект'); return; }
+    var n = tasks.filter(function(t) { return t.projectId === id; }).length;
+    if (!confirm('Удалить проект «' + p.name + '»' + (n ? ' и ' + n + ' задач(и) в нём' : '') + '?')) return;
+    tasks = tasks.filter(function(t) { return t.projectId !== id; });
+    projects = projects.filter(function(x) { return x.id !== id; });
+    if (currentProject === id) currentProject = projects[0].id;
+  } else {
+    p.name = name.trim();
+  }
   saveTasks();
   render();
 }
@@ -546,14 +661,6 @@ function deleteTask(id) {
   tasks = tasks.filter(function(x) { return x.id !== id; });
   saveTasks();
   render();
-}
-
-function editTitle(id, el) {
-  var t = tasks.find(function(x) { return x.id === id; });
-  if (!t) return;
-  var newTitle = el.textContent.trim();
-  if (!newTitle) { el.textContent = t.title; return; }
-  if (newTitle !== t.title) { t.title = newTitle; saveTasks(); }
 }
 
 function setFilter(f) {
@@ -582,7 +689,19 @@ function openTaskModal(id) {
   document.getElementById('task-due-input').value = t.due || '';
   document.getElementById('task-prio-input').value = t.priority;
   document.getElementById('task-done-input').checked = t.done;
+
+  var sel = document.getElementById('task-project-input');
+  sel.innerHTML = '';
+  projects.forEach(function(p) {
+    var o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    if (p.id === t.projectId) o.selected = true;
+    sel.appendChild(o);
+  });
+
   document.getElementById('task-modal').classList.add('visible');
+  document.getElementById('task-title-input').focus();
 }
 
 function closeTaskModal() {
@@ -598,6 +717,7 @@ function saveTaskModal() {
   t.description = document.getElementById('task-desc-input').value;
   t.due = document.getElementById('task-due-input').value || null;
   t.priority = document.getElementById('task-prio-input').value;
+  t.projectId = document.getElementById('task-project-input').value || t.projectId;
   var wasDone = t.done;
   t.done = document.getElementById('task-done-input').checked;
   if (!wasDone && t.done) t.doneAt = Date.now();
@@ -606,6 +726,10 @@ function saveTaskModal() {
   closeTaskModal();
   render();
 }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeTaskModal();
+});
 
 function deleteCurrentTask() {
   if (!currentTaskId || !confirm('Удалить задачу?')) return;
@@ -625,18 +749,43 @@ function formatDue(due) {
 }
 
 var prioRank = { high: 0, normal: 1, low: 2 };
+var prioLabel = { high: 'Высокий', normal: 'Обычный', low: 'Низкий' };
 
 function render() {
-  // Render projects in sidebar
+  // ---- Sidebar: projects with active-task counts ----
   var projList = document.getElementById('projects-list');
   projList.innerHTML = '';
   projects.forEach(function(p) {
-    var btn = document.createElement('button');
-    btn.className = 'sidebar-project' + (currentProject === p.id ? ' active' : '');
-    btn.textContent = p.name;
-    btn.onclick = function() { selectProject(p.id); };
-    projList.appendChild(btn);
+    var row = document.createElement('button');
+    row.className = 'proj' + (currentProject === p.id ? ' active' : '');
+    row.onclick = function() { selectProject(p.id); };
+
+    var name = document.createElement('span');
+    name.className = 'proj-name';
+    name.textContent = p.name;
+    row.appendChild(name);
+
+    var n = tasks.filter(function(t) { return t.projectId === p.id && !t.done; }).length;
+    if (n > 0) {
+      var cnt = document.createElement('span');
+      cnt.className = 'proj-count';
+      cnt.textContent = n;
+      row.appendChild(cnt);
+    }
+
+    var edit = document.createElement('span');
+    edit.className = 'proj-edit';
+    edit.textContent = '✎';
+    edit.title = 'Переименовать или удалить';
+    edit.onclick = function(e) { e.stopPropagation(); renameProject(p.id); };
+    row.appendChild(edit);
+
+    projList.appendChild(row);
   });
+
+  // ---- Header: current project name ----
+  var proj = projects.find(function(p) { return p.id === currentProject; });
+  document.getElementById('project-title').textContent = proj ? proj.name : 'Задачник';
 
   var tabs = document.querySelectorAll('.tab');
   tabs.forEach(function(t) { t.classList.toggle('active', t.dataset.filter === filter); });
@@ -661,7 +810,9 @@ function render() {
   listEl.innerHTML = '';
 
   if (visible.length === 0) {
-    var msg = filter === 'done' ? 'Завершённых задач пока нет' : filter === 'active' ? 'Активных задач нет — можно отдохнуть' : 'Задач пока нет';
+    var msg = filter === 'done' ? 'Завершённых задач пока нет'
+            : filter === 'active' ? 'Активных задач нет — всё сделано'
+            : 'В этом проекте пока нет задач';
     listEl.innerHTML = '<div class="empty-state">' + msg + '</div>';
   } else {
     visible.forEach(function(t) {
@@ -671,47 +822,77 @@ function render() {
         if (t.due < today) row.classList.add('overdue');
         else if (t.due === today) row.classList.add('due-today');
       }
+      // Клик по всей карточке открывает детали
+      row.onclick = function() { openTaskModal(t.id); };
 
       var cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.className = 'task-checkbox';
       cb.checked = t.done;
-      cb.onclick = function() { toggleDone(t.id); };
+      cb.onclick = function(e) { e.stopPropagation(); toggleDone(t.id); };
       row.appendChild(cb);
 
-      var dot = document.createElement('div');
-      dot.className = 'prio-dot ' + t.priority;
-      row.appendChild(dot);
+      var main = document.createElement('div');
+      main.className = 'task-main';
 
       var title = document.createElement('div');
       title.className = 'task-title';
       title.textContent = t.title;
-      title.onclick = function(e) { e.stopPropagation(); openTaskModal(t.id); };
-      row.appendChild(title);
+      main.appendChild(title);
 
-      if (t.due) {
-        var due = document.createElement('div');
-        due.className = 'task-due';
-        due.textContent = formatDue(t.due);
-        row.appendChild(due);
+      if (t.description && t.description.trim()) {
+        var desc = document.createElement('div');
+        desc.className = 'task-desc';
+        desc.textContent = t.description.trim().replace(/\s+/g, ' ');
+        main.appendChild(desc);
       }
 
+      var meta = document.createElement('div');
+      meta.className = 'task-meta';
+
+      var prio = document.createElement('span');
+      prio.className = 'pill';
+      var dot = document.createElement('span');
+      dot.className = 'dot ' + t.priority;
+      prio.appendChild(dot);
+      prio.appendChild(document.createTextNode(prioLabel[t.priority] || 'Обычный'));
+      meta.appendChild(prio);
+
+      if (t.due) {
+        var duePill = document.createElement('span');
+        duePill.className = 'pill';
+        var label = formatDue(t.due);
+        if (!t.done && t.due < today) { duePill.className += ' overdue'; label = 'Просрочено · ' + label; }
+        else if (!t.done && t.due === today) { duePill.className += ' today'; label = 'Сегодня'; }
+        duePill.textContent = label;
+        meta.appendChild(duePill);
+      }
+
+      main.appendChild(meta);
+      row.appendChild(main);
+
       var del = document.createElement('button');
-      del.className = 'task-delete';
+      del.className = 'task-del';
       del.textContent = '×';
-      del.onclick = function() { deleteTask(t.id); };
+      del.title = 'Удалить задачу';
+      del.onclick = function(e) { e.stopPropagation(); deleteTask(t.id); };
       row.appendChild(del);
 
       listEl.appendChild(row);
     });
   }
 
-  var activeCount = tasks.filter(function(t) { return t.projectId === currentProject && !t.done; }).length;
-  var overdueCount = tasks.filter(function(t) { return t.projectId === currentProject && !t.done && t.due && t.due < today; }).length;
-  var statsEl = document.getElementById('stats');
-  statsEl.innerHTML = 'Активных: ' + activeCount +
-    (overdueCount > 0 ? ' · <span class="overdue-count">просрочено: ' + overdueCount + '</span>' : '');
+  // ---- Stats for current project ----
+  var mine = tasks.filter(function(t) { return t.projectId === currentProject; });
+  var activeCount = mine.filter(function(t) { return !t.done; }).length;
+  var overdueCount = mine.filter(function(t) { return !t.done && t.due && t.due < today; }).length;
+  var todayCount = mine.filter(function(t) { return !t.done && t.due === today; }).length;
+  var parts = ['Активных: ' + activeCount];
+  if (todayCount > 0) parts.push('на сегодня: ' + todayCount);
+  if (overdueCount > 0) parts.push('<span class="overdue-count">просрочено: ' + overdueCount + '</span>');
+  document.getElementById('stats').innerHTML = parts.join(' · ');
 }
+
 </script>
 </body>
 </html>
