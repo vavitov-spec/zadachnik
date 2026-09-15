@@ -1057,7 +1057,15 @@ function renameProject(id) {
   if (!name.trim()) {
     if (projects.length === 1) { alert('Нельзя удалить единственный проект'); return; }
     var n = tasks.filter(function(t) { return t.projectId === id; }).length;
-    if (!confirm('Удалить проект «' + p.name + '»' + (n ? ' и ' + n + ' задач(и) в нём' : '') + '?')) return;
+    var np = protocols.filter(function(x) { return x.projectId === id; }).length;
+    var nn = notes.filter(function(x) { return x.projectId === id; }).length;
+    var what = [];
+    if (n) what.push(n + ' задач');
+    if (np) what.push(np + ' протоколов');
+    if (nn) what.push(nn + ' заметок');
+    var msg = 'Удалить проект «' + p.name + '»?';
+    if (what.length) msg += '\n\nВместе с ним удалится: ' + what.join(', ') + '. Отменить будет нельзя.';
+    if (!confirm(msg)) return;
     tasks = tasks.filter(function(t) { return t.projectId !== id; });
     notes = notes.filter(function(n) { return n.projectId !== id; });
     protocols = protocols.filter(function(pr) { return pr.projectId !== id; });
@@ -1080,6 +1088,9 @@ function toggleDone(id) {
 }
 
 function deleteTask(id) {
+  var t = tasks.find(function(x) { return x.id === id; });
+  if (!t) return;
+  if (!confirm('Удалить задачу «' + t.title + '»?')) return;
   tasks = tasks.filter(function(x) { return x.id !== id; });
   saveTasks();
   render();
@@ -1160,8 +1171,11 @@ document.addEventListener('keydown', function(e) {
 });
 
 function deleteCurrentTask() {
-  if (!currentTaskId || !confirm('Удалить задачу?')) return;
-  deleteTask(currentTaskId);
+  if (!currentTaskId) return;
+  var id = currentTaskId;
+  var before = tasks.length;
+  deleteTask(id);
+  if (tasks.length === before) return;   // пользователь отказался
   closeTaskModal();
 }
 
