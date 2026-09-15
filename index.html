@@ -145,9 +145,22 @@
   /* ---------- Main ---------- */
   .main { flex: 1; overflow-y: auto; }
   .main-inner { width: 100%; padding: 32px 40px 110px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-  header h1 { font-size: 28px; margin: 0; letter-spacing: -0.5px; font-weight: 600; }
-  .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 28px; margin: 0; letter-spacing: -0.5px; font-weight: 600; flex-shrink: 0; }
+  .view-tabs {
+    display: flex; gap: 0; flex: 1; border-bottom: none; margin: 0;
+    overflow-x: auto;
+  }
+  .vtab {
+    border: none; background: none; color: var(--muted); font-size: 14px; white-space: nowrap;
+    padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: 0;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; font-weight: 500;
+  }
+  .vtab.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
   #save-indicator { min-width: 110px; text-align: right; font-size: 13px; }
 
   .stats { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
@@ -253,20 +266,9 @@
   .task-del:hover { color: var(--red); }
   .empty-state { text-align: center; color: #b0b0aa; font-size: 14px; padding: 56px 20px; }
 
-  /* ---------- Вкладки разделов (Сегодня / Неделя / Список / Протоколы / Заметки) ---------- */
-  .view-tabs {
-    display: flex; gap: 0; margin: 18px 0 2px; border-bottom: 1px solid var(--line);
-    overflow-x: auto;
-  }
-  .vtab {
-    border: none; background: none; color: var(--muted); font-size: 15px; white-space: nowrap;
-    padding: 12px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
-    touch-action: manipulation; -webkit-tap-highlight-color: transparent; font-weight: 500;
-  }
-  .vtab.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
   .vtab .vtab-count {
-    font-size: 12px; color: var(--muted); background: var(--soft); border-radius: 8px;
-    padding: 2px 7px; margin-left: 8px; font-weight: 500;
+    font-size: 11px; color: var(--muted); background: var(--soft); border-radius: 6px;
+    padding: 2px 6px; margin-left: 6px; font-weight: 500;
   }
   .vtab.active .vtab-count { background: var(--accent); color: #fff; }
 
@@ -421,9 +423,11 @@
     #logout-btn { width: auto; padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .sidebar-add button { padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .main-inner { padding: 24px 20px 110px; }
+    header { flex-direction: column; align-items: flex-start; gap: 12px; padding-bottom: 8px; margin-bottom: 12px; }
     header h1 { font-size: 24px; }
+    .view-tabs { gap: 0; }
+    .vtab { padding: 8px 12px; font-size: 13px; }
     .week-col { min-width: 190px; flex: 0 0 auto; }
-    .vtab { padding: 11px 13px; font-size: 14px; }
   }
   @media (max-width: 520px) {
     .btn-add { flex: 1; padding: 13px; }
@@ -471,19 +475,18 @@
     <div class="main-inner">
       <header>
         <h1 id="project-title">Задачник</h1>
+        <div class="view-tabs" id="view-tabs">
+          <button class="vtab" data-view="today" onclick="setView('today')">Сегодня</button>
+          <button class="vtab" data-view="week" onclick="setView('week')">Неделя</button>
+          <button class="vtab" data-view="list" onclick="setView('list')">Список</button>
+          <button class="vtab" data-view="protocols" onclick="setView('protocols')">Протоколы</button>
+          <button class="vtab" data-view="notes" onclick="setView('notes')">Заметки</button>
+        </div>
         <div class="header-right">
           <span id="save-indicator"></span>
         </div>
       </header>
       <div class="stats" id="stats"></div>
-
-      <div class="view-tabs" id="view-tabs">
-        <button class="vtab" data-view="today" onclick="setView('today')">Сегодня</button>
-        <button class="vtab" data-view="week" onclick="setView('week')">Неделя</button>
-        <button class="vtab" data-view="list" onclick="setView('list')">Список</button>
-        <button class="vtab" data-view="protocols" onclick="setView('protocols')">Протоколы</button>
-        <button class="vtab" data-view="notes" onclick="setView('notes')">Заметки</button>
-      </div>
 
       <div class="add-card">
         <input type="text" class="add-title" id="new-title" placeholder="Что нужно сделать?"
