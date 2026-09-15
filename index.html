@@ -146,24 +146,29 @@
   .main { flex: 1; overflow-y: auto; }
   .main-inner { width: 100%; padding: 32px 40px 110px; }
   header {
-    display: flex; align-items: center; justify-content: space-between; gap: 24px;
-    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+    margin-bottom: 0; padding-bottom: 0; border-bottom: 1px solid var(--line);
   }
-  header h1 { font-size: 28px; margin: 0; letter-spacing: -0.5px; font-weight: 600; flex-shrink: 0; }
+  header h1 { font-size: 28px; margin: 0 0 12px 0; letter-spacing: -0.5px; font-weight: 600; flex-shrink: 0; }
   .view-tabs {
-    display: flex; gap: 0; flex: 1; border-bottom: none; margin: 0;
-    overflow-x: auto;
+    display: flex; gap: 4px; flex: 1; border-bottom: none; margin: 0;
+    overflow-x: auto; align-items: flex-end; padding-bottom: 0;
   }
   .vtab {
-    border: none; background: none; color: var(--muted); font-size: 14px; white-space: nowrap;
-    padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: 0;
+    border: 1px solid var(--line); border-bottom: none;
+    background: var(--soft); color: var(--muted); font-size: 14px; white-space: nowrap;
+    padding: 10px 16px; cursor: pointer; margin-bottom: 0; border-radius: 10px 10px 0 0;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; font-weight: 500;
+    position: relative; top: 1px;
   }
-  .vtab.active { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+  .vtab.active {
+    background: var(--panel); color: var(--ink); font-weight: 600;
+    border-color: var(--line); top: 0; box-shadow: 0 -2px 8px rgba(0,0,0,.05);
+  }
   .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
   #save-indicator { min-width: 110px; text-align: right; font-size: 13px; }
 
-  .stats { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .stats { font-size: 14px; color: var(--muted); margin-top: 16px; line-height: 1.5; }
   .stats .overdue-count { color: var(--red); font-weight: 600; }
 
   /* ---------- Add task ---------- */
@@ -423,10 +428,11 @@
     #logout-btn { width: auto; padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .sidebar-add button { padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .main-inner { padding: 24px 20px 110px; }
-    header { flex-direction: column; align-items: flex-start; gap: 12px; padding-bottom: 8px; margin-bottom: 12px; }
-    header h1 { font-size: 24px; }
-    .view-tabs { gap: 0; }
-    .vtab { padding: 8px 12px; font-size: 13px; }
+    header { flex-direction: column; align-items: flex-start; gap: 0; padding-bottom: 0; margin-bottom: 0; }
+    header h1 { font-size: 24px; margin-bottom: 8px; }
+    .view-tabs { gap: 2px; padding-bottom: 0; }
+    .vtab { padding: 9px 12px; font-size: 13px; top: 0; }
+    .vtab.active { top: 0; }
     .week-col { min-width: 190px; flex: 0 0 auto; }
   }
   @media (max-width: 520px) {
