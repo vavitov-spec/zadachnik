@@ -370,9 +370,21 @@
   }
   .today-container { display: flex; gap: 20px; }
   .today-hours { flex: 1; min-width: 0; }
-  .today-hours h3 { display: none; }
   .today-untimed { flex: 1; min-width: 0; }
-  .today-untimed h3 { font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 12px; }
+  .today-hours h3, .today-untimed h3 {
+    font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 12px; flex-shrink: 0;
+  }
+
+  /* На широком экране колонки прокручиваются независимо друг от друга */
+  @media (min-width: 1001px) {
+    body.view-today .main { overflow: hidden; }
+    body.view-today .main-inner { height: 100%; display: flex; flex-direction: column; padding-bottom: 16px; }
+    body.view-today header, body.view-today .add-card, body.view-today .today-head { flex-shrink: 0; }
+    body.view-today #view-today { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .today-container { flex: 1; min-height: 0; }
+    .today-hours, .today-untimed { display: flex; flex-direction: column; min-height: 0; }
+    #today-hours, #today-untimed { flex: 1; min-height: 0; overflow-y: auto; }
+  }
   .today-drop { display: flex; flex-direction: column; gap: 7px; min-height: 46px; border-radius: 9px; padding: 3px; }
   .hour-row { display: flex; gap: 12px; border-top: 1px solid var(--line); padding: 6px 0; }
   .hour-row:last-child { border-bottom: 1px solid var(--line); }
@@ -573,6 +585,7 @@
         <div class="today-head" id="today-head"></div>
         <div class="today-container">
           <div class="today-hours">
+            <h3>По часам</h3>
             <div id="today-hours"></div>
           </div>
           <div class="today-untimed">
