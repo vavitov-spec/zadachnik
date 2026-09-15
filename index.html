@@ -20,6 +20,7 @@
     --accent: #0071e3;
     --red: #ff3b30;
     --amber: #ff9500;
+    --gutter: 40px;
   }
   html, body { height: 100%; }
   body {
@@ -144,12 +145,14 @@
 
   /* ---------- Main ---------- */
   .main { flex: 1; overflow-y: auto; }
-  .main-inner { width: 100%; padding: 0 40px 110px; }
+  .main-inner { width: 100%; padding: 0 var(--gutter) 110px; }
   header {
     display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
     margin-bottom: 0; padding-bottom: 0; border-bottom: 1px solid var(--line);
     flex-wrap: nowrap; position: sticky; top: 0; background: var(--panel); z-index: 100;
     box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter));
+    padding-left: var(--gutter); padding-right: var(--gutter); padding-top: 18px;
   }
   header h1 { font-size: 28px; margin: 0; letter-spacing: -0.5px; font-weight: 600; flex-shrink: 0; }
   .view-tabs {
@@ -176,9 +179,8 @@
   /* ---------- Add task ---------- */
   .add-card {
     background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 10px; margin: 0 0 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    padding: 10px; margin: 18px 0; box-shadow: 0 1px 3px rgba(0,0,0,.05);
     display: flex; gap: 10px; align-items: center;
-    position: sticky; top: var(--header-height, 76px); z-index: 97;
   }
   .add-title {
     flex: 1; min-width: 200px; border: 1px solid var(--line); outline: none; font-size: 15px;
@@ -229,9 +231,10 @@
 
   /* ---------- Tabs ---------- */
   .tabs {
-    display: inline-flex; gap: 0; background: var(--panel); padding: 0;
-    border-radius: 0; margin-bottom: 18px; border-bottom: 1px solid var(--line);
-    position: sticky; top: calc(var(--header-height, 76px) + 60px); z-index: 98;
+    display: flex; gap: 0; background: var(--panel);
+    border-radius: 0; border-bottom: 1px solid var(--line);
+    position: sticky; top: var(--header-height, 76px); z-index: 98;
+    margin: 0 calc(-1 * var(--gutter)) 18px; padding: 0 var(--gutter);
   }
   .tab {
     border: none; background: none; color: var(--muted); font-size: 15px;
@@ -325,8 +328,9 @@
 
   /* ---------- Неделя ---------- */
   .week-bar {
-    display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 12px 0;
-    position: sticky; top: calc(var(--header-height, 76px) + 60px); background: var(--panel); z-index: 98;
+    display: flex; align-items: center; gap: 10px; padding: 12px var(--gutter);
+    margin: 0 calc(-1 * var(--gutter)) 12px;
+    position: sticky; top: var(--header-height, 76px); background: var(--panel); z-index: 98;
     border-bottom: 1px solid var(--line);
   }
   .week-bar .week-label { font-size: 14px; font-weight: 600; }
@@ -356,8 +360,8 @@
 
   /* ---------- Сегодня ---------- */
   .today-head {
-    margin: 0; padding: 12px 0; font-size: 14px; color: var(--muted);
-    position: sticky; top: calc(var(--header-height, 76px) + 60px); background: var(--panel); z-index: 98;
+    margin: 0 calc(-1 * var(--gutter)); padding: 12px var(--gutter); font-size: 14px; color: var(--muted);
+    position: sticky; top: var(--header-height, 76px); background: var(--panel); z-index: 98;
     border-bottom: 1px solid var(--line);
   }
   .today-container { display: flex; gap: 20px; }
@@ -431,6 +435,7 @@
 
   /* ---------- Responsive ---------- */
   @media (max-width: 860px) {
+    :root { --gutter: 20px; }
     #app { flex-direction: column; }
     .sidebar {
       width: 100%; flex-direction: row; align-items: center; gap: 8px;
@@ -447,7 +452,7 @@
     .sidebar-footer { border: none; margin: 0; padding: 0; flex-shrink: 0; }
     #logout-btn { width: auto; padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .sidebar-add button { padding: 10px 12px; white-space: nowrap; font-size: 14px; }
-    .main-inner { padding: 24px 20px 110px; }
+    .main-inner { padding: 0 var(--gutter) 110px; }
     header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 0; margin-bottom: 0; }
     header h1 { font-size: 24px; margin-bottom: 0; }
     .view-tabs { gap: 2px; padding-bottom: 0; width: 100%; }
@@ -1806,15 +1811,16 @@ function render() {
   if (overdueCount > 0) parts.push('<span class="overdue-count">просрочено: ' + overdueCount + '</span>');
   document.getElementById('stats').innerHTML = parts.join(' · ');
 
-  // ---- Установи высоту sticky header для today view ----
-  setTimeout(function() {
-    var header = document.querySelector('header');
-    if (header) {
-      var height = header.offsetHeight;
-      document.documentElement.style.setProperty('--header-height', height + 'px');
-    }
-  }, 0);
+  setTimeout(syncHeaderHeight, 0);
 }
+
+// высота липкой шапки — под ней «прилипают» дата, неделя и фильтры списка
+function syncHeaderHeight() {
+  var header = document.querySelector('header');
+  if (!header) return;
+  document.documentElement.style.setProperty('--header-height', header.offsetHeight + 'px');
+}
+window.addEventListener('resize', syncHeaderHeight);
 
 </script>
 </body>
