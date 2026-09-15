@@ -175,21 +175,23 @@
   /* ---------- Add task ---------- */
   .add-card {
     background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 16px; margin: 24px 0 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    padding: 10px; margin: 24px 0 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    display: flex; gap: 10px; align-items: center;
   }
   .add-title {
-    width: 100%; border: none; outline: none; font-size: 16px; padding: 8px 2px; background: none;
-    font-weight: 500;
+    flex: 1; min-width: 200px; border: 1px solid var(--line); outline: none; font-size: 15px;
+    padding: 11px 14px; background: var(--soft); border-radius: 10px; font-weight: 500; height: 44px;
   }
-  .add-row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .add-title:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .add-row { display: flex; gap: 10px; align-items: center; margin-top: 0; flex-wrap: nowrap; }
   .add-row input[type=date], .add-row select {
-    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
-    font-size: 14px; color: var(--ink); background: var(--soft);
+    border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px;
+    font-size: 14px; color: var(--ink); background: var(--soft); height: 44px; flex-shrink: 0;
   }
   .add-row input[type=date]:focus, .add-row select:focus {
     outline: none; border-color: var(--accent); background: #fff;
   }
-  .add-row .spacer { flex: 1; }
+  .add-row .spacer { display: none; }
 
   /* Пустое поле даты: вместо системного «дд.мм.гггг» показываем серое «без даты» */
   input[type=date].is-empty { position: relative; }
@@ -206,8 +208,8 @@
     border-radius: 8px; font-size: 16px; cursor: pointer; flex-shrink: 0;
   }
   #voice-btn {
-    width: 48px; height: 48px; font-size: 22px; line-height: 1;
-    background: var(--soft); border: 1px solid var(--line); color: var(--ink);
+    width: 44px; height: 44px; font-size: 20px; line-height: 1;
+    background: var(--soft); border: 1px solid var(--line); color: var(--ink); flex-shrink: 0;
   }
   #voice-btn.listening {
     background: var(--red); border-color: var(--red); color: #fff;
@@ -216,7 +218,8 @@
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
   .btn-add {
     border: none; background: var(--accent); color: #fff; border-radius: 10px;
-    padding: 12px 22px; font-size: 15px; font-weight: 500; cursor: pointer;
+    padding: 11px 24px; font-size: 15px; font-weight: 500; cursor: pointer; height: 44px;
+    flex-shrink: 0;
   }
   .btn-add:hover { background: #0056b3; }
 
@@ -436,10 +439,15 @@
     .vtab.active { top: 0; }
     .week-col { min-width: 190px; flex: 0 0 auto; }
   }
+  @media (max-width: 860px) {
+    .add-card { flex-wrap: wrap; gap: 8px; }
+    .add-title { flex: 1; min-width: 100%; }
+    .add-row { width: 100%; gap: 8px; }
+  }
   @media (max-width: 520px) {
-    .btn-add { flex: 1; padding: 13px; }
+    .btn-add { flex: 1; }
     .btn-icon { width: 44px; height: 44px; }
-    #voice-btn { width: 52px; height: 52px; font-size: 24px; }
+    #voice-btn { width: 44px; height: 44px; font-size: 20px; }
   }
 </style>
 </head>
