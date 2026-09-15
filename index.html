@@ -535,9 +535,9 @@
         <div class="add-row">
           <input type="date" id="new-due" title="Срок">
           <select id="new-priority" title="Важность">
-            <option value="normal" selected>Обычный</option>
-            <option value="high">Высокий</option>
-            <option value="low">Низкий</option>
+            <option value="normal" selected>Важно</option>
+            <option value="high">Срочно</option>
+            <option value="low">Херня</option>
           </select>
           <span class="spacer"></span>
           <button class="btn-icon" id="voice-btn" onclick="toggleVoice()" title="Диктовать задачу">🎤</button>
@@ -622,9 +622,9 @@
           <div class="modal-field">
             <label>Важность</label>
             <select id="task-prio-input">
-              <option value="high">Высокий</option>
-              <option value="normal">Обычный</option>
-              <option value="low">Низкий</option>
+              <option value="high">Срочно</option>
+              <option value="normal">Важно</option>
+              <option value="low">Херня</option>
             </select>
           </div>
         </div>
@@ -1648,7 +1648,7 @@ function formatDue(due) {
 }
 
 var prioRank = { high: 0, normal: 1, low: 2 };
-var prioLabel = { high: 'Высокий', normal: 'Обычный', low: 'Низкий' };
+var prioLabel = { high: 'Срочно', normal: 'Важно', low: 'Херня' };
 
 function renderList() {
   var tabs = document.querySelectorAll('.tab');
@@ -1719,7 +1719,7 @@ function renderList() {
       var dot = document.createElement('span');
       dot.className = 'dot ' + t.priority;
       prio.appendChild(dot);
-      prio.appendChild(document.createTextNode(prioLabel[t.priority] || 'Обычный'));
+      prio.appendChild(document.createTextNode(prioLabel[t.priority] || 'Важно'));
       meta.appendChild(prio);
 
       if (t.due) {
