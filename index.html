@@ -348,16 +348,19 @@
   .week-empty { font-size: 12px; color: #b5b5ae; text-align: center; padding: 14px 4px; }
 
   /* ---------- Сегодня ---------- */
-  .today-head { margin: 14px 0 10px; font-size: 14px; color: var(--muted); }
-  .today-untimed { margin-bottom: 14px; }
-  .today-untimed h3, .today-hours h3 { font-size: 12px; color: var(--muted); font-weight: 700; margin: 0 0 8px; }
+  .today-head { margin: 14px 0 12px; font-size: 14px; color: var(--muted); }
+  .today-container { display: flex; gap: 20px; }
+  .today-hours { flex: 2; min-width: 0; }
+  .today-hours h3 { display: none; }
+  .today-untimed { flex: 1; min-width: 200px; }
+  .today-untimed h3 { font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 12px; }
   .today-drop { display: flex; flex-direction: column; gap: 7px; min-height: 46px; border-radius: 9px; padding: 3px; }
-  .hour-row { display: flex; gap: 10px; border-top: 1px solid var(--line); padding: 5px 0; }
+  .hour-row { display: flex; gap: 12px; border-top: 1px solid var(--line); padding: 6px 0; }
   .hour-row:last-child { border-bottom: 1px solid var(--line); }
-  .hour-label { width: 48px; flex-shrink: 0; font-size: 12px; color: var(--muted); padding-top: 7px; }
+  .hour-label { width: 52px; flex-shrink: 0; font-size: 13px; color: var(--muted); padding-top: 6px; font-weight: 500; }
   .hour-row.is-now .hour-label { color: var(--red); font-weight: 700; }
   .hour-row.is-now { background: #fffaf9; }
-  .hour-slot { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 40px; border-radius: 8px; padding: 3px; }
+  .hour-slot { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 42px; border-radius: 8px; padding: 3px; }
 
   /* ---------- Протоколы и заметки ---------- */
   .entry-add { margin: 14px 0 12px; }
@@ -440,6 +443,11 @@
     .vtab { padding: 9px 12px; font-size: 13px; top: 0; }
     .vtab.active { top: 0; }
     .week-col { min-width: 190px; flex: 0 0 auto; }
+  }
+  @media (max-width: 1000px) {
+    .today-container { flex-direction: column; gap: 16px; }
+    .today-hours { flex: 1; }
+    .today-untimed { flex: 1; }
   }
   @media (max-width: 860px) {
     .add-card { flex-wrap: wrap; gap: 8px; }
@@ -543,13 +551,14 @@
 
       <div id="view-today">
         <div class="today-head" id="today-head"></div>
-        <div class="today-untimed">
-          <h3>Без времени</h3>
-          <div class="today-drop" id="today-untimed" data-drop="untimed"></div>
-        </div>
-        <div class="today-hours">
-          <h3>По часам</h3>
-          <div id="today-hours"></div>
+        <div class="today-container">
+          <div class="today-hours">
+            <div id="today-hours"></div>
+          </div>
+          <div class="today-untimed">
+            <h3>Без времени</h3>
+            <div class="today-drop" id="today-untimed" data-drop="untimed"></div>
+          </div>
         </div>
       </div>
 
@@ -1133,7 +1142,7 @@ var VIEW_LABELS = {
 var DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 var MONTH_GEN = ['января','февраля','марта','апреля','мая','июня',
                  'июля','августа','сентября','октября','ноября','декабря'];
-var HOUR_FROM = 7;
+var HOUR_FROM = 9;
 var HOUR_TO = 21;
 
 function setView(v) {
