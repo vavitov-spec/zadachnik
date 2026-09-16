@@ -328,6 +328,8 @@
   }
   .tcard-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
   .tcard.drag-source { opacity: .35; pointer-events: none; }
+  body.dragging-task { user-select: none; -webkit-user-select: none; cursor: grabbing; }
+  body.dragging-task .tcard { cursor: grabbing; }
   .drag-ghost {
     position: fixed; z-index: 3000; pointer-events: none; max-width: 220px;
     background: var(--ink); color: #fff; font-size: 12px; padding: 7px 10px; border-radius: 8px;
@@ -1308,12 +1310,13 @@ function buildTaskCard(t, opts) {
   }
   card.dataset.id = t.id;
   card.onclick = function() { if (!_taskDragMoved) openTaskModal(t.id); };
+  card.addEventListener('pointerdown', function(e) { taskPointerDown(e, t.id, card, false); });
 
   var grip = document.createElement('span');
   grip.className = 'tcard-grip';
   grip.textContent = '⠿';
   grip.title = 'Потяните, чтобы перенести задачу';
-  grip.addEventListener('pointerdown', function(e) { taskDragStart(e, t.id); });
+  grip.addEventListener('pointerdown', function(e) { taskPointerDown(e, t.id, card, true); });
   grip.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); });
   card.appendChild(grip);
 
@@ -1513,41 +1516,93 @@ function renderToday() {
 /* ---------- Перетаскивание задач между колонками и часами ---------- */
 var _taskDrag = null;
 var _taskDragMoved = false;
+var _taskPending = null;
 
-function taskDragStart(e, taskId) {
+// Тянуть плашку можно за любое место. Чтобы это не мешало ни открытию задачи,
+// ни прокрутке страницы: мышью перетаскивание начинается после сдвига на 5 пикселей,
+// пальцем — после удержания четверть секунды (сдвинул раньше — значит, листаешь).
+var DRAG_MOUSE_SLOP = 5;
+var DRAG_TOUCH_SLOP = 10;
+var DRAG_HOLD_MS = 250;
+
+function taskPointerDown(e, taskId, card, immediate) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  e.preventDefault();
-  e.stopPropagation();
-  var card = e.currentTarget.parentNode;
-  var root = document.getElementById('app');
-  var t = tasks.find(function(x) { return x.id === taskId; });
+  if (e.target && e.target.classList && e.target.classList.contains('tcard-check')) return;
+  clearTaskPending();
+
+  _taskPending = {
+    id: taskId, card: card, pointerId: e.pointerId, type: e.pointerType,
+    x: e.clientX, y: e.clientY, timer: null
+  };
+  document.addEventListener('pointermove', taskMoveRouter, { passive: false });
+  document.addEventListener('pointerup', taskUpRouter);
+  document.addEventListener('pointercancel', taskUpRouter);
+
+  if (immediate) {
+    e.preventDefault();
+    e.stopPropagation();
+    beginTaskDrag(e.clientX, e.clientY, e.pointerId, card, taskId);
+  } else if (e.pointerType !== 'mouse') {
+    _taskPending.timer = setTimeout(function() {
+      var pd = _taskPending;
+      if (pd) beginTaskDrag(pd.x, pd.y, pd.pointerId, pd.card, pd.id);
+    }, DRAG_HOLD_MS);
+  }
+}
+
+function clearTaskPending() {
+  if (_taskPending && _taskPending.timer) clearTimeout(_taskPending.timer);
+  _taskPending = null;
+}
+
+function taskMoveRouter(e) {
+  if (_taskDrag) { taskDragMove(e); return; }
+  var pd = _taskPending;
+  if (!pd || e.pointerId !== pd.pointerId) return;
+  var dx = e.clientX - pd.x, dy = e.clientY - pd.y;
+  var dist = Math.sqrt(dx * dx + dy * dy);
+  if (pd.type === 'mouse') {
+    if (dist > DRAG_MOUSE_SLOP) beginTaskDrag(e.clientX, e.clientY, pd.pointerId, pd.card, pd.id);
+  } else if (dist > DRAG_TOUCH_SLOP) {
+    clearTaskPending();          // палец поехал раньше времени — это прокрутка
+  }
+}
+
+function taskUpRouter(e) {
+  if (_taskDrag) taskDragEnd(e);
+  clearTaskPending();
+  document.removeEventListener('pointermove', taskMoveRouter);
+  document.removeEventListener('pointerup', taskUpRouter);
+  document.removeEventListener('pointercancel', taskUpRouter);
+}
+
+function beginTaskDrag(x, y, pointerId, card, taskId) {
+  clearTaskPending();
+  var t = tasks.find(function(item) { return item.id === taskId; });
 
   var ghost = document.createElement('div');
   ghost.className = 'drag-ghost';
   ghost.textContent = t ? t.title : '';
   document.body.appendChild(ghost);
 
-  _taskDrag = { id: taskId, card: card, ghost: ghost, zone: null, moved: false, root: root };
+  _taskDrag = { id: taskId, card: card, ghost: ghost, zone: null, moved: false, pointerId: pointerId };
   _taskDragMoved = false;
   card.classList.add('drag-source');
-  try { root.setPointerCapture(e.pointerId); } catch (_) {}
-  root.addEventListener('pointermove', taskDragMove);
-  root.addEventListener('pointerup', taskDragEnd);
-  root.addEventListener('pointercancel', taskDragEnd);
-  moveGhost(e);
+  document.body.classList.add('dragging-task');
+  moveGhostTo(x, y);
 }
 
-function moveGhost(e) {
+function moveGhostTo(x, y) {
   if (!_taskDrag) return;
-  _taskDrag.ghost.style.left = (e.clientX + 14) + 'px';
-  _taskDrag.ghost.style.top = (e.clientY - 12) + 'px';
+  _taskDrag.ghost.style.left = (x + 14) + 'px';
+  _taskDrag.ghost.style.top = (y - 12) + 'px';
 }
 
 function taskDragMove(e) {
   if (!_taskDrag) return;
   e.preventDefault();
   _taskDrag.moved = true;
-  moveGhost(e);
+  moveGhostTo(e.clientX, e.clientY);
 
   var under = document.elementFromPoint(e.clientX, e.clientY);
   var zone = under ? under.closest('[data-drop]') : null;
@@ -1563,10 +1618,7 @@ function taskDragEnd(e) {
   if (!d) return;
   _taskDrag = null;
 
-  d.root.removeEventListener('pointermove', taskDragMove);
-  d.root.removeEventListener('pointerup', taskDragEnd);
-  d.root.removeEventListener('pointercancel', taskDragEnd);
-  try { d.root.releasePointerCapture(e.pointerId); } catch (_) {}
+  document.body.classList.remove('dragging-task');
   if (d.ghost.parentNode) d.ghost.parentNode.removeChild(d.ghost);
   d.card.classList.remove('drag-source');
   if (d.zone) d.zone.classList.remove('drop-hover');
