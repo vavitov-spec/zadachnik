@@ -83,6 +83,17 @@
   .sidebar .logo-text { display: block; min-width: 0; }
   .sidebar .logo b { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
   .sidebar .logo-text span { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0; }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 6px;
+    border: none; background: none; border-radius: 8px; cursor: pointer;
+    font-size: 14px; color: var(--ink); text-align: left; font-weight: 500;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn:hover { background: var(--soft); }
+  .nav-btn.active { background: var(--soft); color: var(--accent); }
+  .nav-btn .nav-count { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .nav-btn.active .nav-count { color: var(--accent); }
   .sidebar-header {
     font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px;
     font-weight: 600; padding: 0 4px; margin-bottom: 10px; margin-top: 14px;
@@ -303,7 +314,10 @@
   }
   .vtab.active .vtab-count { background: var(--accent); color: #fff; }
 
-  #view-today, #view-week, #view-list, #view-protocols, #view-notes { display: none; }
+  #view-today, #view-week, #view-list, #view-protocols, #view-notes, #view-dashboard { display: none; }
+  body.global-mode .view-tabs, body.global-mode .add-card { display: none; }
+  body.global-dashboard #view-today { display: none; }
+  body.global-dashboard #view-dashboard { display: block; }
   body.view-today #view-today, body.view-week #view-week, body.view-list #view-list,
   body.view-protocols #view-protocols, body.view-notes #view-notes { display: block; }
   body.view-protocols .add-card, body.view-notes .add-card { display: none; }
@@ -419,6 +433,31 @@
   .hour-row.is-now .hour-label { color: var(--red); font-weight: 700; }
   .hour-row.is-now { background: #fffaf9; }
   .hour-slot { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 42px; border-radius: 8px; padding: 3px; }
+
+  /* ---------- Дашборд ---------- */
+  .dash-tiles { display: flex; gap: 12px; margin: 16px 0 24px; flex-wrap: wrap; }
+  .dash-tile {
+    flex: 1 1 150px; background: var(--soft); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .dash-tile .v { font-size: 26px; font-weight: 600; line-height: 1.2; }
+  .dash-tile .k { font-size: 13px; color: var(--muted); }
+  .dash-tile.warn .v { color: var(--red); }
+  .dash-section { margin-bottom: 26px; }
+  .dash-section h3 { font-size: 13px; font-weight: 600; margin: 0 0 10px; }
+  .dash-day { font-size: 12px; color: var(--muted); font-weight: 600; margin: 14px 0 7px; }
+  .dash-day:first-child { margin-top: 0; }
+  .dash-list { display: flex; flex-direction: column; gap: 7px; }
+  .dash-projects { display: flex; flex-direction: column; gap: 6px; }
+  .dash-proj {
+    display: flex; align-items: center; gap: 12px; padding: 11px 13px; background: #fff;
+    border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 14px;
+    text-align: left; width: 100%;
+  }
+  .dash-proj:hover { background: var(--soft); }
+  .dash-proj .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dash-proj .num { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .dash-proj .num.warn { color: var(--red); font-weight: 600; }
 
   /* ---------- Протоколы и заметки ---------- */
   .entry-add { margin: 14px 0 12px; }
@@ -568,6 +607,10 @@
       </svg>
       <span class="logo-text"><b>ВЕКТОР</b><span>Задачник</span></span>
     </div>
+    <div class="sidebar-nav">
+      <button class="nav-btn" data-nav="today" onclick="selectGlobal('today')">Сегодня</button>
+      <button class="nav-btn" data-nav="dashboard" onclick="selectGlobal('dashboard')">Дашборд</button>
+    </div>
     <div class="sidebar-header">Проекты</div>
     <div class="sidebar-projects" id="projects-list"></div>
     <div class="sidebar-add">
@@ -648,6 +691,22 @@
             <h3>Без времени</h3>
             <div class="today-drop" id="today-untimed" data-drop="untimed"></div>
           </div>
+        </div>
+      </div>
+
+      <div id="view-dashboard">
+        <div class="dash-tiles" id="dash-tiles"></div>
+        <div class="dash-section">
+          <h3>Просрочено</h3>
+          <div id="dash-overdue"></div>
+        </div>
+        <div class="dash-section">
+          <h3>Ближайшие семь дней</h3>
+          <div id="dash-upcoming"></div>
+        </div>
+        <div class="dash-section">
+          <h3>Проекты</h3>
+          <div class="dash-projects" id="dash-projects"></div>
         </div>
       </div>
 
@@ -775,6 +834,7 @@ var projects = [];
 var currentProject = null;
 var filter = 'active';
 var currentView = 'list';          // today | week | list | protocols | notes
+var globalView = null;             // null — обычный проект; 'today' | 'dashboard' — сводные разделы
 var weekOffset = 0;                // 0 — текущая неделя
 var notes = [];
 var protocols = [];
@@ -853,6 +913,7 @@ function loadTasks() {
       notes = (d && Array.isArray(d.notes)) ? d.notes : [];
       protocols = (d && Array.isArray(d.protocols)) ? d.protocols : [];
       if (d && d.currentView) currentView = d.currentView;
+      globalView = (d && d.globalView) || null;
       if (projects.length === 0) {
         projects = [{id: 'default', name: 'Основное'}];
       }
@@ -906,7 +967,7 @@ function _setSaveIndicator(state) {
 function saveTasks() {
   var payload = {
     tasks: tasks, projects: projects, notes: notes, protocols: protocols,
-    currentProject: currentProject, currentView: currentView, updatedAt: Date.now()
+    currentProject: currentProject, currentView: currentView, globalView: globalView, updatedAt: Date.now()
   };
   try { localStorage.setItem(_lsKey(), JSON.stringify(payload)); } catch(e) {}
   clearTimeout(_saveTimer);
@@ -1022,6 +1083,14 @@ function addTask() {
 
 function selectProject(id) {
   currentProject = id;
+  globalView = null;
+  saveTasks();
+  render();
+}
+
+// Сводные разделы над списком проектов: собирают задачи всех проектов сразу
+function selectGlobal(v) {
+  globalView = v;
   saveTasks();
   render();
 }
@@ -1283,12 +1352,26 @@ function shiftWeek(n) {
 }
 
 function projectTasks() {
+  if (globalView) return tasks.slice();          // сводный раздел — все проекты
   return tasks.filter(function(t) { return t.projectId === currentProject; });
+}
+
+function projectName(id) {
+  var p = projects.find(function(x) { return x.id === id; });
+  return p ? p.name : '';
 }
 
 function renderViewTabs() {
   document.body.classList.remove('view-today', 'view-week', 'view-list', 'view-protocols', 'view-notes');
-  document.body.classList.add('view-' + currentView);
+  document.body.classList.toggle('global-mode', !!globalView);
+  document.body.classList.toggle('global-dashboard', globalView === 'dashboard');
+  // сводный «Сегодня» показывается тем же блоком, что и вкладка проекта
+  document.body.classList.add('view-' + (globalView === 'today' ? 'today' : currentView));
+
+  document.querySelectorAll('.nav-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.nav === globalView);
+  });
+  if (globalView) return;
 
   var today = todayStr();
   var mine = projectTasks();
@@ -1323,6 +1406,7 @@ function renderViewTabs() {
 /* ---------- Компактная карточка задачи для досок ---------- */
 function buildTaskCard(t, opts) {
   opts = opts || {};
+  if (globalView) opts.showProject = true;
   var today = todayStr();
   var card = document.createElement('div');
   card.className = 'tcard' + (t.done ? ' done' : '') + (t.priority === 'high' ? ' prio-high' : '');
@@ -1385,6 +1469,12 @@ function buildTaskCard(t, opts) {
     else if (!t.done && t.due === today) { dp.className += ' today'; label = 'Сегодня'; }
     dp.textContent = label;
     meta.appendChild(dp); any = true;
+  }
+  if (opts.showProject) {
+    var pp = document.createElement('span');
+    pp.className = 'pill';
+    pp.textContent = projectName(t.projectId);
+    meta.appendChild(pp); any = true;
   }
   if (opts.showTime && t.time) {
     var tp = document.createElement('span');
@@ -1702,6 +1792,104 @@ function taskDragEnd(e) {
   render();
 }
 
+/* ==================== Дашборд по всем проектам ==================== */
+function renderDashboard() {
+  var today = todayStr();
+  var active = tasks.filter(function(t) { return !t.done; });
+  var overdue = active.filter(function(t) { return t.due && t.due < today; });
+  var todays = active.filter(function(t) { return t.due === today; });
+
+  var tiles = [
+    { k: 'Активных задач', v: active.length, warn: false },
+    { k: 'На сегодня', v: todays.length, warn: false },
+    { k: 'Просрочено', v: overdue.length, warn: overdue.length > 0 }
+  ];
+  var tilesEl = document.getElementById('dash-tiles');
+  tilesEl.innerHTML = '';
+  tiles.forEach(function(x) {
+    var d = document.createElement('div');
+    d.className = 'dash-tile' + (x.warn ? ' warn' : '');
+    d.innerHTML = '<div class="v"></div><div class="k"></div>';
+    d.querySelector('.v').textContent = x.v;
+    d.querySelector('.k').textContent = x.k;
+    tilesEl.appendChild(d);
+  });
+
+  // просроченное — от самого давнего
+  var ovEl = document.getElementById('dash-overdue');
+  ovEl.innerHTML = '';
+  if (overdue.length === 0) {
+    ovEl.innerHTML = '<div class="empty-state">Просроченных задач нет</div>';
+  } else {
+    var list = document.createElement('div');
+    list.className = 'dash-list';
+    overdue.slice().sort(function(a, b) { return a.due < b.due ? -1 : 1; })
+      .forEach(function(t) { list.appendChild(buildTaskCard(t, { showDate: true, showTime: true })); });
+    ovEl.appendChild(list);
+  }
+
+  // ближайшая неделя по дням
+  var upEl = document.getElementById('dash-upcoming');
+  upEl.innerHTML = '';
+  var shown = 0;
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+    var str = dateToStr(d);
+    var items = active.filter(function(t) { return t.due === str; }).sort(sortForBoard);
+    if (items.length === 0) continue;
+    shown += items.length;
+
+    var h = document.createElement('div');
+    h.className = 'dash-day';
+    h.textContent = (str === today ? 'Сегодня' : DAY_SHORT[(d.getDay() + 6) % 7] + ', ' +
+                     d.getDate() + ' ' + MONTH_GEN[d.getMonth()]);
+    upEl.appendChild(h);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'dash-list';
+    items.forEach(function(t) { wrap.appendChild(buildTaskCard(t, { showTime: true })); });
+    upEl.appendChild(wrap);
+  }
+  if (shown === 0) upEl.innerHTML = '<div class="empty-state">На ближайшую неделю ничего не запланировано</div>';
+
+  // разбивка по проектам
+  var prEl = document.getElementById('dash-projects');
+  prEl.innerHTML = '';
+  projects.forEach(function(p) {
+    var mine = tasks.filter(function(t) { return t.projectId === p.id && !t.done; });
+    var od = mine.filter(function(t) { return t.due && t.due < today; }).length;
+    var td = mine.filter(function(t) { return t.due === today; }).length;
+
+    var row = document.createElement('button');
+    row.className = 'dash-proj';
+    row.onclick = function() { selectProject(p.id); };
+
+    var nm = document.createElement('span');
+    nm.className = 'name';
+    nm.textContent = p.name;
+    row.appendChild(nm);
+
+    var a = document.createElement('span');
+    a.className = 'num';
+    a.textContent = 'активных: ' + mine.length;
+    row.appendChild(a);
+
+    if (td > 0) {
+      var b = document.createElement('span');
+      b.className = 'num';
+      b.textContent = 'на сегодня: ' + td;
+      row.appendChild(b);
+    }
+    if (od > 0) {
+      var c = document.createElement('span');
+      c.className = 'num warn';
+      c.textContent = 'просрочено: ' + od;
+      row.appendChild(c);
+    }
+    prEl.appendChild(row);
+  });
+}
+
 /* ==================== Протоколы и заметки ==================== */
 var currentEntryKind = 'protocol';
 var currentEntryId = null;
@@ -1941,7 +2129,7 @@ function render() {
   projList.innerHTML = '';
   projects.forEach(function(p) {
     var row = document.createElement('button');
-    row.className = 'proj' + (currentProject === p.id ? ' active' : '');
+    row.className = 'proj' + (!globalView && currentProject === p.id ? ' active' : '');
     row.dataset.id = p.id;
     row.onclick = function() { if (!_projDragMoved) selectProject(p.id); };
 
@@ -1979,12 +2167,16 @@ function render() {
   // ---- Header: current project name ----
   var proj = projects.find(function(p) { return p.id === currentProject; });
   var titleEl = document.getElementById('project-title');
-  titleEl.textContent = proj ? proj.name : 'Задачник';
+  titleEl.textContent = globalView === 'today' ? 'Сегодня'
+                      : globalView === 'dashboard' ? 'Дашборд'
+                      : (proj ? proj.name : 'Задачник');
   titleEl.title = titleEl.textContent;
 
   var today = todayStr();
   renderViewTabs();
-  if (currentView === 'list') renderList();
+  if (globalView === 'dashboard') renderDashboard();
+  else if (globalView === 'today') renderToday();
+  else if (currentView === 'list') renderList();
   else if (currentView === 'week') renderWeek();
   else if (currentView === 'today') renderToday();
   else if (currentView === 'protocols') renderEntries('protocol');
