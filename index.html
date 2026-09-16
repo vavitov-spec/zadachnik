@@ -199,7 +199,8 @@
   .day-tab .dt-date { font-size: 14px; }
   .day-tab.active { color: var(--ink); }
   .day-tab:hover { color: var(--ink); }
-  body:not(.view-today) .day-tab { display: none; }
+  .day-tab { display: none; }
+  body.global-mode.view-today .day-tab { display: flex; }
   /* в сводном разделе слово «Сегодня» уже стоит переключателем — заголовок не дублируем */
   body.global-mode.view-today header h1 { display: none; }
   .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
@@ -556,7 +557,7 @@
     .main-inner { padding: 0 var(--gutter) 110px; }
     header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 0; margin-bottom: 0; }
     header h1 { font-size: 24px; margin-bottom: 0; flex: 0 0 auto; max-width: 100%; }
-    .day-tab { align-self: flex-start; padding-bottom: 0; }
+    body.global-mode.view-today .day-tab { align-self: flex-start; padding-bottom: 0; }
     .day-tab .dt-name { font-size: 18px; }
     .day-tab .dt-date { font-size: 13px; }
     .view-tabs { gap: 2px; padding-bottom: 0; width: 100%; }
