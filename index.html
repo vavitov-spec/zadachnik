@@ -357,7 +357,6 @@
     border-radius: 12px; padding: 9px; display: flex; flex-direction: column; gap: 7px;
   }
   .week-col.is-today { border-color: #c9c9c1; background: #fffdf5; }
-  .week-col.col-all { background: #f1f1ed; }
   .week-col-head {
     display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
     font-size: 12px; font-weight: 700; color: #6f6f68; padding: 2px 2px 4px;
@@ -1391,19 +1390,17 @@ function renderWeek() {
 
   var today = todayStr();
   var mine = projectTasks().filter(function(t) { return !t.done; });
-  var dayStrs = days.map(function(d) { return d.str; });
 
   var board = document.getElementById('week-board');
   board.innerHTML = '';
 
-  var cols = [{ key: 'all', title: 'Все', sub: 'без дня на этой неделе' }];
-  days.forEach(function(d) {
-    cols.push({ key: 'day', title: d.short, sub: pad2(d.date.getDate()) + '.' + pad2(d.date.getMonth() + 1), date: d.str });
+  var cols = days.map(function(d) {
+    return { key: 'day', title: d.short, sub: pad2(d.date.getDate()) + '.' + pad2(d.date.getMonth() + 1), date: d.str };
   });
 
   cols.forEach(function(c) {
     var col = document.createElement('div');
-    col.className = 'week-col' + (c.key === 'all' ? ' col-all' : '') + (c.date === today ? ' is-today' : '');
+    col.className = 'week-col' + (c.date === today ? ' is-today' : '');
 
     var head = document.createElement('div');
     head.className = 'week-col-head';
@@ -1417,12 +1414,10 @@ function renderWeek() {
 
     var drop = document.createElement('div');
     drop.className = 'week-drop';
-    drop.dataset.drop = c.key === 'all' ? 'all' : 'day';
-    if (c.date) drop.dataset.date = c.date;
+    drop.dataset.drop = 'day';
+    drop.dataset.date = c.date;
 
-    var items = (c.key === 'all')
-      ? mine.filter(function(t) { return !t.due || dayStrs.indexOf(t.due) === -1; })
-      : mine.filter(function(t) { return t.due === c.date; });
+    var items = mine.filter(function(t) { return t.due === c.date; });
     items.sort(sortForBoard);
 
     if (items.length === 0) {
@@ -1432,7 +1427,7 @@ function renderWeek() {
       drop.appendChild(e);
     } else {
       items.forEach(function(t) {
-        drop.appendChild(buildTaskCard(t, { showDate: c.key === 'all', showTime: true }));
+        drop.appendChild(buildTaskCard(t, { showTime: true }));
       });
     }
 
