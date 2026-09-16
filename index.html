@@ -187,18 +187,22 @@
     padding: 10px; margin: 18px 0; box-shadow: 0 1px 3px rgba(0,0,0,.05);
     display: flex; gap: 10px; align-items: center;
   }
-  .add-title {
-    flex: 1; min-width: 200px; border: 1px solid var(--line); outline: none; font-size: 15px;
-    padding: 0 14px; background: var(--soft); border-radius: 10px; font-weight: 500; height: 44px;
-    box-sizing: border-box;
+  .add-title, .add-desc {
+    border: 1px solid var(--line); outline: none; font-size: 15px;
+    padding: 0 14px; background: var(--soft); border-radius: 10px; height: 44px;
+    box-sizing: border-box; min-width: 0;
   }
-  .add-title:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .add-title { flex: 1 1 34%; font-weight: 500; }
+  .add-desc { flex: 1 1 66%; font-weight: 400; }
+  .add-title:focus, .add-desc:focus { outline: none; border-color: var(--accent); background: #fff; }
   .add-row { display: flex; gap: 10px; align-items: center; margin-top: 0; flex-wrap: nowrap; }
   .add-row input[type=date], .add-row select {
-    border: 1px solid var(--line); border-radius: 10px; padding: 0 12px;
-    font-size: 14px; color: var(--ink); background: var(--soft); height: 44px; flex-shrink: 0;
+    border: 1px solid var(--line); border-radius: 10px; padding: 0 9px;
+    font-size: 13px; color: var(--ink); background: var(--soft); height: 44px; flex-shrink: 0;
     box-sizing: border-box;
   }
+  .add-row input[type=date] { width: 122px; }
+  .add-row select { width: 96px; }
   .add-row input[type=date]:focus, .add-row select:focus {
     outline: none; border-color: var(--accent); background: #fff;
   }
@@ -229,8 +233,8 @@
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
   .btn-add {
     border: none; background: var(--accent); color: #fff; border-radius: 10px;
-    padding: 0 24px; font-size: 15px; font-weight: 500; cursor: pointer; height: 44px;
-    flex-shrink: 0; box-sizing: border-box;
+    padding: 0 14px; font-size: 14px; font-weight: 500; cursor: pointer; height: 44px;
+    flex-shrink: 0; box-sizing: border-box; white-space: nowrap;
   }
   .btn-add:hover { background: #0056b3; }
 
@@ -503,7 +507,7 @@
   }
   @media (max-width: 860px) {
     .add-card { flex-wrap: wrap; gap: 8px; }
-    .add-title { flex: 1; min-width: 100%; }
+    .add-title, .add-desc { flex: 1 1 100%; }
     .add-row { width: 100%; gap: 8px; }
   }
   @media (max-width: 520px) {
@@ -586,7 +590,9 @@
       <div class="stats" id="stats"></div>
 
       <div class="add-card">
-        <input type="text" class="add-title" id="new-title" placeholder="Что нужно сделать?"
+        <input type="text" class="add-title" id="new-title" placeholder="Тема"
+          onkeydown="if(event.key==='Enter')addTask()">
+        <input type="text" class="add-desc" id="new-desc" placeholder="Описание"
           onkeydown="if(event.key==='Enter')addTask()">
         <div class="add-row">
           <input type="date" id="new-due" title="Срок">
@@ -980,6 +986,7 @@ function showApp() {
 /* ---------- Task operations ---------- */
 function addTask() {
   var titleEl = document.getElementById('new-title');
+  var descEl = document.getElementById('new-desc');
   var title = titleEl.value.trim();
   if (!title) return;
   var due = document.getElementById('new-due').value || null;
@@ -988,7 +995,7 @@ function addTask() {
   tasks.push({
     id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     title: title,
-    description: '',
+    description: descEl.value.trim(),
     projectId: currentProject,
     done: false,
     priority: priority,
@@ -998,6 +1005,7 @@ function addTask() {
     doneAt: null
   });
   titleEl.value = '';
+  descEl.value = '';
   document.getElementById('new-due').value = '';
   syncDatePlaceholder(document.getElementById('new-due'));
   document.getElementById('new-priority').value = 'normal';
