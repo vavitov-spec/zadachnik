@@ -194,6 +194,14 @@
     align-self: flex-end; padding-bottom: 11px; margin-left: -14px;
   }
   body:not(.view-today) .head-date { display: none; }
+  .day-switch { display: inline-flex; gap: 2px; background: var(--soft); padding: 3px; border-radius: 9px; }
+  body:not(.view-today) .day-switch { display: none; }
+  .dbtn {
+    border: none; background: none; color: var(--muted); font-size: 13px; font-weight: 500;
+    padding: 6px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .dbtn.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
   .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
   #save-indicator { min-width: 110px; text-align: right; font-size: 13px; }
 
@@ -635,6 +643,10 @@
           <button class="vtab" data-view="notes" onclick="setView('notes')">Заметки</button>
         </div>
         <div class="header-right">
+          <div class="day-switch" id="day-switch">
+            <button class="dbtn" data-day="0" onclick="setDayOffset(0)">Сегодня</button>
+            <button class="dbtn" data-day="1" onclick="setDayOffset(1)">Завтра</button>
+          </div>
           <span id="save-indicator"></span>
         </div>
       </header>
@@ -1058,7 +1070,7 @@ function addTask() {
   var title = titleEl.value.trim();
   if (!title) return;
   var due = document.getElementById('new-due').value || null;
-  if (!due && currentView === 'today') due = todayStr();
+  if (!due && currentView === 'today') due = viewDayStr();
   var priority = document.getElementById('new-priority').value;
   tasks.push({
     id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -1085,6 +1097,7 @@ function addTask() {
 function selectProject(id) {
   currentProject = id;
   globalView = null;
+  dayOffset = 0;
   saveTasks();
   render();
 }
@@ -1092,6 +1105,7 @@ function selectProject(id) {
 // Сводные разделы над списком проектов: собирают задачи всех проектов сразу
 function selectGlobal(v) {
   globalView = v;
+  dayOffset = 0;
   saveTasks();
   render();
 }
@@ -1318,12 +1332,14 @@ var DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 var MONTH_GEN = ['января','февраля','марта','апреля','мая','июня',
                  'июля','августа','сентября','октября','ноября','декабря'];
 var _weekDayStrs = [];
+var dayOffset = 0;                 // 0 — сегодня, 1 — завтра
 var HOUR_FROM = 9;
 var HOUR_TO = 21;
 
 function setView(v) {
   currentView = v;
   weekOffset = 0;
+  dayOffset = 0;
   saveTasks();
   render();
 }
@@ -1355,6 +1371,19 @@ function shiftWeek(n) {
 function projectTasks() {
   if (globalView) return tasks.slice();          // сводный раздел — все проекты
   return tasks.filter(function(t) { return t.projectId === currentProject; });
+}
+
+// дата дня, который сейчас открыт во вкладке «Сегодня»
+function viewDayStr() {
+  var d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + dayOffset);
+  return dateToStr(d);
+}
+
+function setDayOffset(n) {
+  dayOffset = n;
+  render();
 }
 
 function projectName(id) {
@@ -1612,16 +1641,19 @@ function renderWeek() {
 
 /* ---------- Вкладка «Сегодня» ---------- */
 function renderToday() {
-  var today = todayStr();
-  var d = new Date();
+  var dayStr = viewDayStr();
+  var d = strToDate(dayStr);
   document.getElementById('head-date').textContent =
     DAY_SHORT[(d.getDay() + 6) % 7] + ', ' + d.getDate() + ' ' + MONTH_GEN[d.getMonth()];
+  document.querySelectorAll('.dbtn').forEach(function(b) {
+    b.classList.toggle('active', +b.dataset.day === dayOffset);
+  });
 
-  var mine = projectTasks().filter(function(t) { return t.due === today; });
+  var mine = projectTasks().filter(function(t) { return t.due === dayStr; });
 
   var untimedEl = document.getElementById('today-untimed');
   untimedEl.innerHTML = '';
-  untimedEl.dataset.date = today;
+  untimedEl.dataset.date = dayStr;
   var untimed = mine.filter(function(t) { return !t.time; }).sort(sortForBoard);
   if (untimed.length === 0) {
     untimedEl.innerHTML = '<div class="week-empty">Перетащите сюда задачу, чтобы снять время</div>';
@@ -1631,7 +1663,7 @@ function renderToday() {
 
   var hoursEl = document.getElementById('today-hours');
   hoursEl.innerHTML = '';
-  var nowHour = new Date().getHours();
+  var nowHour = dayOffset === 0 ? new Date().getHours() : -1;
 
   for (var h = HOUR_FROM; h <= HOUR_TO; h++) {
     var row = document.createElement('div');
@@ -1645,7 +1677,7 @@ function renderToday() {
     var slot = document.createElement('div');
     slot.className = 'hour-slot';
     slot.dataset.drop = 'hour';
-    slot.dataset.date = today;
+    slot.dataset.date = dayStr;
     slot.dataset.time = pad2(h) + ':00';
 
     // задачи раньше первой и позже последней строки не теряем — прижимаем к краю
@@ -2168,7 +2200,7 @@ function render() {
   // ---- Header: current project name ----
   var proj = projects.find(function(p) { return p.id === currentProject; });
   var titleEl = document.getElementById('project-title');
-  titleEl.textContent = globalView === 'today' ? 'Сегодня'
+  titleEl.textContent = globalView === 'today' ? (dayOffset === 1 ? 'Завтра' : 'Сегодня')
                       : globalView === 'dashboard' ? 'Дашборд'
                       : (proj ? proj.name : 'Задачник');
   titleEl.title = titleEl.textContent;
