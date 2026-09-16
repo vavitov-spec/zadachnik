@@ -189,19 +189,19 @@
     background: var(--panel); color: var(--ink); font-weight: 600;
     border-color: var(--line); top: 0; box-shadow: 0 -2px 8px rgba(0,0,0,.05);
   }
-  .head-date {
-    font-size: 14px; color: var(--muted); white-space: nowrap; flex-shrink: 0;
-    align-self: flex-end; padding-bottom: 11px; margin-left: -14px;
-  }
-  body:not(.view-today) .head-date { display: none; }
-  .day-switch { display: inline-flex; gap: 2px; background: var(--soft); padding: 3px; border-radius: 9px; }
-  body:not(.view-today) .day-switch { display: none; }
-  .dbtn {
-    border: none; background: none; color: var(--muted); font-size: 13px; font-weight: 500;
-    padding: 6px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+  .day-tab {
+    border: none; background: none; cursor: pointer; padding: 0 0 11px; flex-shrink: 0;
+    display: flex; align-items: baseline; gap: 9px; white-space: nowrap;
+    color: var(--muted); align-self: flex-end;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
-  .dbtn.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .day-tab .dt-name { font-size: 21px; font-weight: 600; letter-spacing: -0.3px; }
+  .day-tab .dt-date { font-size: 14px; }
+  .day-tab.active { color: var(--ink); }
+  .day-tab:hover { color: var(--ink); }
+  body:not(.view-today) .day-tab { display: none; }
+  /* в сводном разделе слово «Сегодня» уже стоит переключателем — заголовок не дублируем */
+  body.global-mode.view-today header h1 { display: none; }
   .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
   #save-indicator { min-width: 110px; text-align: right; font-size: 13px; }
 
@@ -548,7 +548,9 @@
     .main-inner { padding: 0 var(--gutter) 110px; }
     header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 0; margin-bottom: 0; }
     header h1 { font-size: 24px; margin-bottom: 0; flex: 0 0 auto; max-width: 100%; }
-    .head-date { align-self: flex-start; padding-bottom: 0; margin-left: 0; }
+    .day-tab { align-self: flex-start; padding-bottom: 0; }
+    .day-tab .dt-name { font-size: 18px; }
+    .day-tab .dt-date { font-size: 13px; }
     .view-tabs { gap: 2px; padding-bottom: 0; width: 100%; }
     .vtab { padding: 9px 12px; font-size: 13px; top: 0; }
     .vtab.active { top: 0; }
@@ -634,7 +636,9 @@
     <div class="main-inner">
       <header>
         <h1 id="project-title">Задачник</h1>
-        <span class="head-date" id="head-date"></span>
+        <button class="day-tab" data-day="0" onclick="setDayOffset(0)">
+          <span class="dt-name">Сегодня</span><span class="dt-date" id="dt-date-0"></span>
+        </button>
         <div class="view-tabs" id="view-tabs">
           <button class="vtab" data-view="today" onclick="setView('today')">Сегодня</button>
           <button class="vtab" data-view="week" onclick="setView('week')">Неделя</button>
@@ -643,10 +647,9 @@
           <button class="vtab" data-view="notes" onclick="setView('notes')">Заметки</button>
         </div>
         <div class="header-right">
-          <div class="day-switch" id="day-switch">
-            <button class="dbtn" data-day="0" onclick="setDayOffset(0)">Сегодня</button>
-            <button class="dbtn" data-day="1" onclick="setDayOffset(1)">Завтра</button>
-          </div>
+          <button class="day-tab" data-day="1" onclick="setDayOffset(1)">
+            <span class="dt-name">Завтра</span><span class="dt-date" id="dt-date-1"></span>
+          </button>
           <span id="save-indicator"></span>
         </div>
       </header>
@@ -1642,10 +1645,16 @@ function renderWeek() {
 /* ---------- Вкладка «Сегодня» ---------- */
 function renderToday() {
   var dayStr = viewDayStr();
-  var d = strToDate(dayStr);
-  document.getElementById('head-date').textContent =
-    DAY_SHORT[(d.getDay() + 6) % 7] + ', ' + d.getDate() + ' ' + MONTH_GEN[d.getMonth()];
-  document.querySelectorAll('.dbtn').forEach(function(b) {
+
+  // подписи обоих дней: слева сегодня, справа завтра; серым — тот, что не открыт
+  [0, 1].forEach(function(off) {
+    var dd = new Date();
+    dd.setHours(0, 0, 0, 0);
+    dd.setDate(dd.getDate() + off);
+    document.getElementById('dt-date-' + off).textContent =
+      DAY_SHORT[(dd.getDay() + 6) % 7] + ', ' + dd.getDate() + ' ' + MONTH_GEN[dd.getMonth()];
+  });
+  document.querySelectorAll('.day-tab').forEach(function(b) {
     b.classList.toggle('active', +b.dataset.day === dayOffset);
   });
 
@@ -2200,7 +2209,7 @@ function render() {
   // ---- Header: current project name ----
   var proj = projects.find(function(p) { return p.id === currentProject; });
   var titleEl = document.getElementById('project-title');
-  titleEl.textContent = globalView === 'today' ? (dayOffset === 1 ? 'Завтра' : 'Сегодня')
+  titleEl.textContent = globalView === 'today' ? 'Сегодня'
                       : globalView === 'dashboard' ? 'Дашборд'
                       : (proj ? proj.name : 'Задачник');
   titleEl.title = titleEl.textContent;
