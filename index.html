@@ -159,7 +159,10 @@
     margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter));
     padding-left: var(--gutter); padding-right: var(--gutter); padding-top: 18px;
   }
-  header h1 { font-size: 28px; margin: 0; letter-spacing: -0.5px; font-weight: 600; flex-shrink: 0; }
+  header h1 {
+    font-size: 28px; margin: 0; letter-spacing: -0.5px; font-weight: 600;
+    flex: 0 0 230px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .view-tabs {
     display: flex; gap: 4px; margin: 0;
     overflow-x: auto; align-items: flex-end; padding-bottom: 0;
@@ -497,7 +500,7 @@
     .sidebar-add button { padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .main-inner { padding: 0 var(--gutter) 110px; }
     header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 0; margin-bottom: 0; }
-    header h1 { font-size: 24px; margin-bottom: 0; }
+    header h1 { font-size: 24px; margin-bottom: 0; flex: 0 0 auto; max-width: 100%; }
     .view-tabs { gap: 2px; padding-bottom: 0; width: 100%; }
     .vtab { padding: 9px 12px; font-size: 13px; top: 0; }
     .vtab.active { top: 0; }
@@ -1975,7 +1978,9 @@ function render() {
 
   // ---- Header: current project name ----
   var proj = projects.find(function(p) { return p.id === currentProject; });
-  document.getElementById('project-title').textContent = proj ? proj.name : 'Задачник';
+  var titleEl = document.getElementById('project-title');
+  titleEl.textContent = proj ? proj.name : 'Задачник';
+  titleEl.title = titleEl.textContent;
 
   var today = todayStr();
   renderViewTabs();
