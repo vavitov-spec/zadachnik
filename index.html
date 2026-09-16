@@ -453,14 +453,17 @@
   .modal-field { margin-bottom: 20px; }
   .modal-field label { display: block; font-size: 13px; color: var(--ink); margin-bottom: 8px; font-weight: 600; }
   .modal-field textarea, .modal-field input[type=text], .modal-field input[type=date], .modal-field input[type=time], .modal-field select {
-    width: 100%; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft);
+    width: 100%; min-width: 0; max-width: 100%; font-size: 16px; padding: 12px 14px;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--soft);
   }
+  .modal-row .modal-field input[type=date], .modal-row .modal-field input[type=time],
+  .modal-row .modal-field select { padding: 12px 10px; font-size: 15px; }
   .modal-field textarea:focus, .modal-field input[type=text]:focus, .modal-field input[type=date]:focus, .modal-field input[type=time]:focus, .modal-field select:focus {
     outline: none; border-color: var(--accent); background: #fff;
   }
   .modal-field textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
-  .modal-row { display: flex; gap: 14px; }
-  .modal-row .modal-field { flex: 1; }
+  .modal-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .modal-row .modal-field { flex: 1 1 130px; min-width: 0; }
   .check-row {
     display: flex; align-items: center; gap: 12px; font-size: 15px; cursor: pointer;
     padding: 14px; background: var(--soft); border-radius: 12px; margin-bottom: 20px;
