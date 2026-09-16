@@ -370,10 +370,17 @@
   .week-backlog { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
   .week-backlog h3 { font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 12px; }
   .week-backlog-hint { color: var(--muted); font-weight: 400; }
-  .week-backlog-drop {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: 8px; min-height: 60px; border-radius: 10px; padding: 3px;
+  .week-backlog-cols { display: flex; gap: 10px; align-items: flex-start; }
+  .backlog-col {
+    flex: 1 1 0; min-width: 0; background: var(--soft); border: 1px solid var(--line);
+    border-radius: 12px; padding: 9px; display: flex; flex-direction: column; gap: 7px;
   }
+  .backlog-col-head {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+    color: #6f6f68; padding: 2px 2px 4px;
+  }
+  .backlog-col-head .n { margin-left: auto; font-weight: 500; color: var(--muted); }
+  .backlog-drop { display: flex; flex-direction: column; gap: 7px; min-height: 60px; border-radius: 9px; padding: 2px; }
 
   /* ---------- Сегодня ---------- */
   .today-head {
@@ -613,8 +620,8 @@
         </div>
         <div class="week-board" id="week-board"></div>
         <div class="week-backlog">
-          <h3>Без дня <span class="week-backlog-hint">— перетащите в день недели</span></h3>
-          <div class="week-backlog-drop" id="week-backlog" data-drop="all"></div>
+          <h3>Вне этой недели <span class="week-backlog-hint">— перетащите в нужный день</span></h3>
+          <div class="week-backlog-cols" id="week-backlog"></div>
         </div>
       </div>
 
@@ -1226,6 +1233,7 @@ var VIEW_LABELS = {
 var DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 var MONTH_GEN = ['января','февраля','марта','апреля','мая','июня',
                  'июля','августа','сентября','октября','ноября','декабря'];
+var _weekDayStrs = [];
 var HOUR_FROM = 9;
 var HOUR_TO = 21;
 
@@ -1404,6 +1412,7 @@ function renderWeek() {
 
   var today = todayStr();
   var mine = projectTasks().filter(function(t) { return !t.done; });
+  _weekDayStrs = days.map(function(d) { return d.str; });
 
   var board = document.getElementById('week-board');
   board.innerHTML = '';
@@ -1449,15 +1458,51 @@ function renderWeek() {
     board.appendChild(col);
   });
 
-  // ---- Полка задач без дня ----
+  // ---- Полка: всё, что не попало в показанные пять дней, по важности ----
   var backlog = document.getElementById('week-backlog');
   backlog.innerHTML = '';
-  var loose = mine.filter(function(t) { return !t.due; }).sort(sortForBoard);
-  if (loose.length === 0) {
-    backlog.innerHTML = '<div class="week-empty">Все задачи разложены по дням</div>';
-  } else {
-    loose.forEach(function(t) { backlog.appendChild(buildTaskCard(t, { showDesc: true })); });
-  }
+  var loose = mine.filter(function(t) { return !t.due || _weekDayStrs.indexOf(t.due) === -1; });
+  loose.sort(function(a, b) {
+    if (!!a.due !== !!b.due) return a.due ? -1 : 1;          // с датой — выше
+    if (a.due && b.due && a.due !== b.due) return a.due < b.due ? -1 : 1;
+    return a.createdAt - b.createdAt;
+  });
+
+  ['high', 'normal', 'low'].forEach(function(prio) {
+    var col = document.createElement('div');
+    col.className = 'backlog-col';
+
+    var items = loose.filter(function(t) { return (t.priority || 'normal') === prio; });
+
+    var head = document.createElement('div');
+    head.className = 'backlog-col-head';
+    var dot = document.createElement('span');
+    dot.className = 'dot ' + prio;
+    head.appendChild(dot);
+    head.appendChild(document.createTextNode(prioLabel[prio]));
+    var n = document.createElement('span');
+    n.className = 'n';
+    n.textContent = items.length || '';
+    head.appendChild(n);
+    col.appendChild(head);
+
+    var drop = document.createElement('div');
+    drop.className = 'backlog-drop';
+    drop.dataset.drop = 'backlog';
+    drop.dataset.prio = prio;
+
+    if (items.length === 0) {
+      var e = document.createElement('div');
+      e.className = 'week-empty';
+      e.textContent = '—';
+      drop.appendChild(e);
+    } else {
+      items.forEach(function(t) { drop.appendChild(buildTaskCard(t, { showDate: true, showTime: true })); });
+    }
+
+    col.appendChild(drop);
+    backlog.appendChild(col);
+  });
 }
 
 /* ---------- Вкладка «Сегодня» ---------- */
@@ -1631,7 +1676,11 @@ function taskDragEnd(e) {
   var t = tasks.find(function(x) { return x.id === d.id; });
   if (!t) return;
   var kind = d.zone.dataset.drop;
-  if (kind === 'all') { t.due = null; t.time = null; }
+  if (kind === 'backlog') {
+    t.priority = d.zone.dataset.prio || t.priority;
+    // снимаем день только у задач текущей недели: дату другой недели не теряем
+    if (t.due && _weekDayStrs.indexOf(t.due) !== -1) { t.due = null; t.time = null; }
+  }
   else if (kind === 'day') { t.due = d.zone.dataset.date; }
   else if (kind === 'untimed') { t.due = d.zone.dataset.date; t.time = null; }
   else if (kind === 'hour') { t.due = d.zone.dataset.date; t.time = d.zone.dataset.time; }
