@@ -457,9 +457,16 @@
   .dash-bar-v { font-size: 13px; font-weight: 600; }
   .dash-bar-col.zero .dash-bar-v { color: #c4c4c0; font-weight: 500; }
   .dash-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
-  .dash-bar { width: 100%; max-width: 56px; background: var(--accent); border-radius: 8px 8px 0 0; min-height: 3px; }
+  .dash-bar {
+    width: 100%; max-width: 56px; border-radius: 8px 8px 0 0; min-height: 3px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
   .dash-bar-col.zero .dash-bar { background: var(--line); }
-  .dash-bar-col.is-today .dash-bar { background: var(--ink); }
+  .dash-seg.high { background: var(--red); }
+  .dash-seg.normal { background: var(--amber); }
+  .dash-seg.low { background: #c3c3bd; }
+  .dash-legend { display: flex; gap: 16px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+  .dash-legend span { display: inline-flex; align-items: center; gap: 6px; }
   .dash-bar-lab { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .dash-bar-col.is-today .dash-bar-lab { color: var(--ink); font-weight: 600; }
   .dash-section { margin-bottom: 26px; }
@@ -715,6 +722,7 @@
         <div class="dash-tiles" id="dash-tiles"></div>
         <div class="dash-section">
           <h3 id="dash-chart-title">Текущая неделя</h3>
+          <div class="dash-legend" id="dash-legend"></div>
           <div class="dash-chart" id="dash-chart"></div>
         </div>
       </div>
@@ -1865,11 +1873,17 @@ function renderDashboard() {
     var d = new Date(mon);
     d.setDate(mon.getDate() + i);
     var str = dateToStr(d);
+    var onDay = tasks.filter(function(t) { return t.due === str; });
     days.push({
       str: str,
       short: DAY_SHORT[i],
       num: d.getDate(),
-      n: tasks.filter(function(t) { return t.due === str; }).length
+      n: onDay.length,
+      by: {
+        high: onDay.filter(function(t) { return (t.priority || 'normal') === 'high'; }).length,
+        normal: onDay.filter(function(t) { return (t.priority || 'normal') === 'normal'; }).length,
+        low: onDay.filter(function(t) { return (t.priority || 'normal') === 'low'; }).length
+      }
     });
   }
   var max = days.reduce(function(m, x) { return Math.max(m, x.n); }, 0);
@@ -1879,6 +1893,17 @@ function renderDashboard() {
     'Задачи на неделю ' + mon.getDate() +
     (mon.getMonth() === fri.getMonth() ? '' : ' ' + MONTH_GEN[mon.getMonth()]) +
     ' – ' + fri.getDate() + ' ' + MONTH_GEN[fri.getMonth()];
+
+  var legend = document.getElementById('dash-legend');
+  legend.innerHTML = '';
+  ['high', 'normal', 'low'].forEach(function(prio) {
+    var item = document.createElement('span');
+    var dot = document.createElement('span');
+    dot.className = 'dot ' + prio;
+    item.appendChild(dot);
+    item.appendChild(document.createTextNode(prioLabel[prio]));
+    legend.appendChild(item);
+  });
 
   var chart = document.getElementById('dash-chart');
   chart.innerHTML = '';
@@ -1896,6 +1921,17 @@ function renderDashboard() {
     var bar = document.createElement('div');
     bar.className = 'dash-bar';
     bar.style.height = (max > 0 ? Math.round(day.n / max * 100) : 0) + '%';
+    // части столбика: сверху срочные, ниже важные, внизу остальное
+    ['high', 'normal', 'low'].forEach(function(prio) {
+      if (!day.by[prio]) return;
+      var seg = document.createElement('div');
+      seg.className = 'dash-seg ' + prio;
+      seg.style.height = (day.by[prio] / day.n * 100) + '%';
+      bar.appendChild(seg);
+    });
+    bar.title = ['high', 'normal', 'low'].map(function(prio) {
+      return prioLabel[prio] + ': ' + day.by[prio];
+    }).join(' · ');
     wrap.appendChild(bar);
     col.appendChild(wrap);
 
