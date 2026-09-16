@@ -83,17 +83,27 @@
   .sidebar .logo-text { display: block; min-width: 0; }
   .sidebar .logo b { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
   .sidebar .logo-text span { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0; }
-  .sidebar-nav { display: flex; flex-direction: column; gap: 1px; }
+  .sidebar-nav {
+    display: flex; flex-direction: column; gap: 3px;
+    padding-bottom: 14px; border-bottom: 1px solid var(--line);
+  }
   .nav-btn {
-    display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 6px;
-    border: none; background: none; border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px;
+    border: none; background: none; border-radius: 10px; cursor: pointer;
     font-size: 14px; color: var(--ink); text-align: left; font-weight: 500;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
+  .nav-ico {
+    width: 27px; height: 27px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--soft); color: var(--muted);
+  }
+  .nav-ico svg { width: 15px; height: 15px; display: block; }
+  .nav-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nav-btn:hover { background: var(--soft); }
-  .nav-btn.active { background: var(--soft); color: var(--accent); }
-  .nav-btn .nav-count { margin-left: auto; font-size: 12px; color: var(--muted); }
-  .nav-btn.active .nav-count { color: var(--accent); }
+  .nav-btn.active { background: rgba(0, 113, 227, .1); color: var(--accent); font-weight: 600; }
+  .nav-btn.active .nav-ico { background: var(--accent); color: #fff; }
+  .nav-btn.active:hover { background: rgba(0, 113, 227, .14); }
   .sidebar-header {
     font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px;
     font-weight: 600; padding: 0 4px; margin-bottom: 10px; margin-top: 14px;
@@ -547,6 +557,8 @@
     .sidebar .logo { padding: 0 6px 0 0; gap: 7px; }
     .sidebar .logo-text span { display: none; }
     .sidebar-header { display: none; }
+    .sidebar-nav { flex-direction: row; gap: 4px; padding: 0; border: none; flex-shrink: 0; }
+    .nav-btn { width: auto; padding: 7px 10px; white-space: nowrap; background: var(--soft); }
     .sidebar-projects { flex-direction: row; flex: 0 0 auto; gap: 4px; overflow: visible; }
     .proj { width: auto; white-space: nowrap; padding: 10px 12px; background: var(--soft); font-size: 14px; }
     .proj-edit { display: none; }
@@ -628,8 +640,25 @@
       <span class="logo-text"><b>ВЕКТОР</b><span>Задачник</span></span>
     </div>
     <div class="sidebar-nav">
-      <button class="nav-btn" data-nav="today" onclick="selectGlobal('today')">Сегодня</button>
-      <button class="nav-btn" data-nav="dashboard" onclick="selectGlobal('dashboard')">Дашборд</button>
+      <button class="nav-btn" data-nav="today" onclick="selectGlobal('today')">
+        <span class="nav-ico">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="3.2" width="12" height="11" rx="2.6"/>
+            <path d="M2 6.7h12M5.4 1.8v2.5M10.6 1.8v2.5"/>
+          </svg>
+        </span>
+        <span class="nav-label">Сегодня</span>
+      </button>
+      <button class="nav-btn" data-nav="dashboard" onclick="selectGlobal('dashboard')">
+        <span class="nav-ico">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9"
+               stroke-linecap="round" aria-hidden="true">
+            <path d="M3.6 13.2V9.4M8 13.2V3.6M12.4 13.2V7.2"/>
+          </svg>
+        </span>
+        <span class="nav-label">Дашборд</span>
+      </button>
     </div>
     <div class="sidebar-header">Проекты</div>
     <div class="sidebar-projects" id="projects-list"></div>
