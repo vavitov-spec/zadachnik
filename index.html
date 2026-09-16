@@ -448,24 +448,25 @@
     flex: 1 1 150px; background: var(--soft); border: 1px solid var(--line);
     border-radius: 12px; padding: 14px 16px;
   }
-  .dash-tile .v { font-size: 26px; font-weight: 600; line-height: 1.2; }
-  .dash-tile .k { font-size: 13px; color: var(--muted); }
+  .dash-tile .v { font-size: 30px; font-weight: 600; line-height: 1.2; }
+  .dash-tile .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
   .dash-tile.warn .v { color: var(--red); }
+
+  .dash-chart { display: flex; align-items: stretch; gap: 10px; height: 220px; margin-top: 6px; }
+  .dash-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  .dash-bar-v { font-size: 13px; font-weight: 600; }
+  .dash-bar-col.zero .dash-bar-v { color: #c4c4c0; font-weight: 500; }
+  .dash-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+  .dash-bar { width: 100%; max-width: 56px; background: var(--accent); border-radius: 8px 8px 0 0; min-height: 3px; }
+  .dash-bar-col.zero .dash-bar { background: var(--line); }
+  .dash-bar-col.is-today .dash-bar { background: var(--ink); }
+  .dash-bar-lab { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .dash-bar-col.is-today .dash-bar-lab { color: var(--ink); font-weight: 600; }
   .dash-section { margin-bottom: 26px; }
   .dash-section h3 { font-size: 13px; font-weight: 600; margin: 0 0 10px; }
   .dash-day { font-size: 12px; color: var(--muted); font-weight: 600; margin: 14px 0 7px; }
   .dash-day:first-child { margin-top: 0; }
   .dash-list { display: flex; flex-direction: column; gap: 7px; }
-  .dash-projects { display: flex; flex-direction: column; gap: 6px; }
-  .dash-proj {
-    display: flex; align-items: center; gap: 12px; padding: 11px 13px; background: #fff;
-    border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 14px;
-    text-align: left; width: 100%;
-  }
-  .dash-proj:hover { background: var(--soft); }
-  .dash-proj .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .dash-proj .num { font-size: 12px; color: var(--muted); flex-shrink: 0; }
-  .dash-proj .num.warn { color: var(--red); font-weight: 600; }
 
   /* ---------- Протоколы и заметки ---------- */
   .entry-add { margin: 14px 0 12px; }
@@ -713,16 +714,8 @@
       <div id="view-dashboard">
         <div class="dash-tiles" id="dash-tiles"></div>
         <div class="dash-section">
-          <h3>Просрочено</h3>
-          <div id="dash-overdue"></div>
-        </div>
-        <div class="dash-section">
-          <h3>Ближайшие семь дней</h3>
-          <div id="dash-upcoming"></div>
-        </div>
-        <div class="dash-section">
-          <h3>Проекты</h3>
-          <div class="dash-projects" id="dash-projects"></div>
+          <h3 id="dash-chart-title">Текущая неделя</h3>
+          <div class="dash-chart" id="dash-chart"></div>
         </div>
       </div>
 
@@ -1398,8 +1391,10 @@ function renderViewTabs() {
   document.body.classList.remove('view-today', 'view-week', 'view-list', 'view-protocols', 'view-notes');
   document.body.classList.toggle('global-mode', !!globalView);
   document.body.classList.toggle('global-dashboard', globalView === 'dashboard');
-  // сводный «Сегодня» показывается тем же блоком, что и вкладка проекта
-  document.body.classList.add('view-' + (globalView === 'today' ? 'today' : currentView));
+  // сводный «Сегодня» показывается тем же блоком, что и вкладка проекта;
+  // у дашборда своей вкладки нет — иначе всплывал бы переключатель дней
+  if (globalView === 'today') document.body.classList.add('view-today');
+  else if (!globalView) document.body.classList.add('view-' + currentView);
 
   document.querySelectorAll('.nav-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.nav === globalView);
@@ -1838,97 +1833,78 @@ function taskDragEnd(e) {
 function renderDashboard() {
   var today = todayStr();
   var active = tasks.filter(function(t) { return !t.done; });
-  var overdue = active.filter(function(t) { return t.due && t.due < today; });
-  var todays = active.filter(function(t) { return t.due === today; });
 
-  var tiles = [
-    { k: 'Активных задач', v: active.length, warn: false },
-    { k: 'На сегодня', v: todays.length, warn: false },
-    { k: 'Просрочено', v: overdue.length, warn: overdue.length > 0 }
-  ];
+  // ---- Три плашки: незавершённые задачи по важности, все проекты ----
   var tilesEl = document.getElementById('dash-tiles');
   tilesEl.innerHTML = '';
-  tiles.forEach(function(x) {
-    var d = document.createElement('div');
-    d.className = 'dash-tile' + (x.warn ? ' warn' : '');
-    d.innerHTML = '<div class="v"></div><div class="k"></div>';
-    d.querySelector('.v').textContent = x.v;
-    d.querySelector('.k').textContent = x.k;
-    tilesEl.appendChild(d);
+  ['high', 'normal', 'low'].forEach(function(prio) {
+    var n = active.filter(function(t) { return (t.priority || 'normal') === prio; }).length;
+    var tile = document.createElement('div');
+    tile.className = 'dash-tile';
+
+    var v = document.createElement('div');
+    v.className = 'v';
+    v.textContent = n;
+    tile.appendChild(v);
+
+    var k = document.createElement('div');
+    k.className = 'k';
+    var dot = document.createElement('span');
+    dot.className = 'dot ' + prio;
+    k.appendChild(dot);
+    k.appendChild(document.createTextNode(prioLabel[prio]));
+    tile.appendChild(k);
+
+    tilesEl.appendChild(tile);
   });
 
-  // просроченное — от самого давнего
-  var ovEl = document.getElementById('dash-overdue');
-  ovEl.innerHTML = '';
-  if (overdue.length === 0) {
-    ovEl.innerHTML = '<div class="empty-state">Просроченных задач нет</div>';
-  } else {
-    var list = document.createElement('div');
-    list.className = 'dash-list';
-    overdue.slice().sort(function(a, b) { return a.due < b.due ? -1 : 1; })
-      .forEach(function(t) { list.appendChild(buildTaskCard(t, { showDate: true, showTime: true })); });
-    ovEl.appendChild(list);
-  }
-
-  // ближайшая неделя по дням
-  var upEl = document.getElementById('dash-upcoming');
-  upEl.innerHTML = '';
-  var shown = 0;
+  // ---- Диаграмма текущей недели: сколько задач на каждый день, все проекты ----
+  var mon = mondayOf(0);
+  var days = [];
   for (var i = 0; i < 7; i++) {
-    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+    var d = new Date(mon);
+    d.setDate(mon.getDate() + i);
     var str = dateToStr(d);
-    var items = active.filter(function(t) { return t.due === str; }).sort(sortForBoard);
-    if (items.length === 0) continue;
-    shown += items.length;
+    days.push({
+      str: str,
+      short: DAY_SHORT[i],
+      num: d.getDate(),
+      n: tasks.filter(function(t) { return t.due === str; }).length
+    });
+  }
+  var max = days.reduce(function(m, x) { return Math.max(m, x.n); }, 0);
 
-    var h = document.createElement('div');
-    h.className = 'dash-day';
-    h.textContent = (str === today ? 'Сегодня' : DAY_SHORT[(d.getDay() + 6) % 7] + ', ' +
-                     d.getDate() + ' ' + MONTH_GEN[d.getMonth()]);
-    upEl.appendChild(h);
+  var fri = new Date(mon); fri.setDate(mon.getDate() + 6);
+  document.getElementById('dash-chart-title').textContent =
+    'Задачи на неделю ' + mon.getDate() +
+    (mon.getMonth() === fri.getMonth() ? '' : ' ' + MONTH_GEN[mon.getMonth()]) +
+    ' – ' + fri.getDate() + ' ' + MONTH_GEN[fri.getMonth()];
+
+  var chart = document.getElementById('dash-chart');
+  chart.innerHTML = '';
+  days.forEach(function(day) {
+    var col = document.createElement('div');
+    col.className = 'dash-bar-col' + (day.n === 0 ? ' zero' : '') + (day.str === today ? ' is-today' : '');
+
+    var v = document.createElement('div');
+    v.className = 'dash-bar-v';
+    v.textContent = day.n;
+    col.appendChild(v);
 
     var wrap = document.createElement('div');
-    wrap.className = 'dash-list';
-    items.forEach(function(t) { wrap.appendChild(buildTaskCard(t, { showTime: true })); });
-    upEl.appendChild(wrap);
-  }
-  if (shown === 0) upEl.innerHTML = '<div class="empty-state">На ближайшую неделю ничего не запланировано</div>';
+    wrap.className = 'dash-bar-wrap';
+    var bar = document.createElement('div');
+    bar.className = 'dash-bar';
+    bar.style.height = (max > 0 ? Math.round(day.n / max * 100) : 0) + '%';
+    wrap.appendChild(bar);
+    col.appendChild(wrap);
 
-  // разбивка по проектам
-  var prEl = document.getElementById('dash-projects');
-  prEl.innerHTML = '';
-  projects.forEach(function(p) {
-    var mine = tasks.filter(function(t) { return t.projectId === p.id && !t.done; });
-    var od = mine.filter(function(t) { return t.due && t.due < today; }).length;
-    var td = mine.filter(function(t) { return t.due === today; }).length;
+    var lab = document.createElement('div');
+    lab.className = 'dash-bar-lab';
+    lab.textContent = day.short + ' ' + day.num;
+    col.appendChild(lab);
 
-    var row = document.createElement('button');
-    row.className = 'dash-proj';
-    row.onclick = function() { selectProject(p.id); };
-
-    var nm = document.createElement('span');
-    nm.className = 'name';
-    nm.textContent = p.name;
-    row.appendChild(nm);
-
-    var a = document.createElement('span');
-    a.className = 'num';
-    a.textContent = 'активных: ' + mine.length;
-    row.appendChild(a);
-
-    if (td > 0) {
-      var b = document.createElement('span');
-      b.className = 'num';
-      b.textContent = 'на сегодня: ' + td;
-      row.appendChild(b);
-    }
-    if (od > 0) {
-      var c = document.createElement('span');
-      c.className = 'num warn';
-      c.textContent = 'просрочено: ' + od;
-      row.appendChild(c);
-    }
-    prEl.appendChild(row);
+    chart.appendChild(col);
   });
 }
 
