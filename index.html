@@ -269,6 +269,51 @@
     box-shadow: 0 2px 9px rgba(255,59,48,.4); animation: pulse 1s infinite;
   }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
+
+  /* ---------- Большая кнопка диктовки (телефон, дашборд) ---------- */
+  #mic-dock {
+    position: fixed; left: 0; right: 0; z-index: 120;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    pointer-events: none;
+  }
+  #mic-hint {
+    max-width: min(88vw, 460px); background: rgba(29,29,31,.93); color: #fff;
+    font-size: 14px; line-height: 1.4; padding: 10px 15px; border-radius: 15px;
+    text-align: center; opacity: 0; transform: translateY(6px);
+    transition: opacity .16s ease, transform .16s ease;
+  }
+  #mic-hint.show { opacity: 1; transform: none; }
+  #mic-fab {
+    display: none; pointer-events: auto; position: relative;
+    width: 76px; height: 76px; border-radius: 50%; border: none;
+    background: var(--accent); color: #fff; cursor: pointer;
+    align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    transition: background .15s ease, transform .1s ease;
+  }
+  #mic-fab:active { transform: scale(.94); }
+  #mic-fab .mic-glyph { width: 31px; height: 31px; }
+  #mic-fab.listening { background: var(--red); }
+  #mic-fab.processing { background: #6f6f68; }
+  /* расходящиеся круги — видно, что идёт запись */
+  #mic-fab.listening::before, #mic-fab.listening::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid var(--red); animation: mic-ring 1.7s ease-out infinite;
+  }
+  #mic-fab.listening::after { animation-delay: .85s; }
+  @keyframes mic-ring {
+    0%   { transform: scale(1);   opacity: .65; }
+    100% { transform: scale(2.1); opacity: 0; }
+  }
+  @media (max-width: 860px) {
+    body.global-dashboard #mic-fab { display: flex; }
+    body.global-dashboard .main-inner { padding-bottom: 140px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #mic-fab.listening::before, #mic-fab.listening::after { animation: none; opacity: .4; }
+  }
   .btn-add {
     border: none; background: var(--accent); color: #fff; border-radius: 10px;
     padding: 0 14px; font-size: 14px; font-weight: 500; cursor: pointer; height: 44px;
@@ -946,30 +991,63 @@ var isListening = false;
 var currentTaskId = null;
 
 // Инициализация Web Speech API
+var _voiceFinal = '';
+
+// Состояние диктовки показываем на обеих кнопках сразу и текстом над большой кнопкой
+function setVoiceStatus(state, text) {
+  ['voice-btn', 'mic-fab'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('listening', state === 'listening');
+    el.classList.toggle('processing', state === 'processing');
+  });
+  var hint = document.getElementById('mic-hint');
+  if (!hint) return;
+  hint.textContent = text || '';
+  hint.classList.toggle('show', !!text);
+}
+
 if (typeof webkitSpeechRecognition !== 'undefined') {
   recognition = new webkitSpeechRecognition();
   recognition.lang = 'ru-RU';
   recognition.continuous = false;
+  recognition.interimResults = true;   // чтобы показывать речь по ходу
+
   recognition.onstart = function() {
     isListening = true;
-    document.getElementById('voice-btn').classList.add('listening');
+    _voiceFinal = '';
+    setVoiceStatus('listening', 'Слушаю…');
   };
+
+  recognition.onresult = function(e) {
+    var interim = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      var r = e.results[i];
+      if (r.isFinal) _voiceFinal += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    var shown = (_voiceFinal + ' ' + interim).trim();
+    setVoiceStatus('listening', shown || 'Слушаю…');
+  };
+
+  // Срабатывает и когда нажал ещё раз, и когда сам остановился на тишине
   recognition.onend = function() {
     isListening = false;
-    document.getElementById('voice-btn').classList.remove('listening');
+    if (_voiceFinal.trim()) {
+      parseVoiceWithAI(_voiceFinal.trim());
+    } else {
+      setVoiceStatus('idle', '');
+    }
   };
+
   recognition.onerror = function(e) {
     console.error('Speech recognition error:', e.error);
-    document.getElementById('voice-btn').classList.remove('listening');
-    alert('Ошибка распознавания речи: ' + e.error);
-  };
-  recognition.onresult = function(e) {
-    var transcript = '';
-    for (var i = e.resultIndex; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
-    }
-    var titleEl = document.getElementById('new-title');
-    parseVoiceWithAI(transcript);
+    isListening = false;
+    var msg = e.error === 'not-allowed' ? 'Нет доступа к микрофону'
+            : e.error === 'no-speech'   ? 'Ничего не услышал'
+            : 'Ошибка распознавания: ' + e.error;
+    setVoiceStatus('idle', msg);
+    setTimeout(function() { setVoiceStatus('idle', ''); }, 2500);
   };
 }
 
@@ -2346,10 +2424,8 @@ var _aiParsedData = null;
 async function parseVoiceWithAI(text) {
   if (!text.trim()) return;
   
-  var titleEl = document.getElementById('new-title');
-  titleEl.value = '⏳ Обработка...';
-  titleEl.disabled = true;
-  
+  setVoiceStatus('processing', 'Разбираю запись…');
+
   try {
     var projectsList = projects.map(function(p) { return { id: p.id, name: p.name }; });
     var today = todayStr();
@@ -2364,32 +2440,23 @@ async function parseVoiceWithAI(text) {
       })
     });
     
-    if (!response.ok) {
-      var err = await response.text();
-      console.error('Worker error:', err);
-      alert('Ошибка обработки: ' + err);
-      titleEl.value = '';
-      titleEl.disabled = false;
+    var data = await response.json().catch(function() { return null; });
+
+    if (!response.ok || !data || data.error) {
+      var msg = (data && (data.error || data.details)) || ('HTTP ' + response.status);
+      console.error('Ошибка разбора:', msg);
+      setVoiceStatus('idle', 'Не получилось разобрать: ' + msg);
+      setTimeout(function() { setVoiceStatus('idle', ''); }, 4000);
       return;
     }
-    
-    var data = await response.json();
-    if (data.error) {
-      alert('Ошибка: ' + data.error);
-      titleEl.value = '';
-      titleEl.disabled = false;
-      return;
-    }
-    
-    titleEl.value = '';
-    titleEl.disabled = false;
+
+    setVoiceStatus('idle', '');
     fillAiDialog(data);
-    
+
   } catch (e) {
     console.error('Parse error:', e);
-    alert('Ошибка подключения: ' + e.message);
-    titleEl.value = '';
-    titleEl.disabled = false;
+    setVoiceStatus('idle', 'Нет связи с сервисом разбора');
+    setTimeout(function() { setVoiceStatus('idle', ''); }, 4000);
   }
 }
 
@@ -2475,5 +2542,16 @@ function confirmAiParsed() {
 }
 
 </script>
+<div id="mic-dock">
+  <div id="mic-hint"></div>
+  <button id="mic-fab" onclick="toggleVoice()" aria-label="Диктовать запись">
+    <svg class="mic-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="2" width="6" height="12" rx="3"/>
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+    </svg>
+  </button>
+</div>
+
 </body>
 </html>
