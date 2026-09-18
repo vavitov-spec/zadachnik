@@ -1,6 +1,12 @@
 /**
- * Посредник между Задачником и Claude (через aiprimetech.io).
- * Ключ хранится в переменной окружения ANTHROPIC_API_KEY и наружу не попадает.
+ * Посредник между Задачником и нейросетью.
+ *
+ * Основная модель — Alice AI в Yandex AI Studio: отвечает за доли секунды,
+ * работает из России без блокировок. Если она недоступна, запрос уходит
+ * к Claude через aiprimetech.io — тот медленнее, но остаётся страховкой.
+ *
+ * Ключи лежат в переменных окружения воркера и наружу не попадают:
+ *   YANDEX_API_KEY, YANDEX_FOLDER_ID, ANTHROPIC_API_KEY
  */
 
 const ALLOWED_ORIGINS = [
@@ -8,8 +14,11 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8000',
 ];
 
-// у посредника поддерживаются только короткие имена моделей, без даты в конце
-const MODEL = 'claude-sonnet-4-6';
+const YANDEX_URL = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion';
+const YANDEX_MODEL = 'aliceai-llm';
+
+const CLAUDE_URL = 'https://aiprimetech.io/v1/messages';
+const CLAUDE_MODEL = 'claude-sonnet-4-6';   // только короткие имена, без даты
 
 export default {
   async fetch(request, env) {
@@ -32,78 +41,136 @@ export default {
 };
 
 async function handleParseVoice(request, env, cors) {
+  let text, projects, today;
   try {
-    const apiKey = env.ANTHROPIC_API_KEY;
-    if (!apiKey) return json({ error: 'Ключ API не задан в настройках воркера' }, 500, cors);
-
-    const { text, projects, today } = await request.json();
-    if (!text || !text.trim()) return json({ error: 'Пустая запись' }, 400, cors);
-
-    const projectList = (projects || []).map(p => `- ${p.name} (id: ${p.id})`).join('\n');
-
-    const system = `Ты разбираешь надиктованные рабочие записи строителя и превращаешь их в структурированную запись.
-
-Доступные проекты:
-${projectList || '(проектов нет)'}
-
-Сегодня ${today}.
-
-Ответь ТОЛЬКО объектом JSON, без пояснений, с полями:
-{
-  "type": "task" | "protocol" | "note",
-  "projectId": id проекта из списка или null,
-  "title": короткая тема,
-  "description": подробности или "",
-  "dueDate": "ГГГГ-ММ-ДД" или null,
-  "time": "ЧЧ:ММ" или null,
-  "priority": "high" | "normal" | "low"
-}
-
-Правила:
-- task — задача, protocol — протокол встречи или решения, note — заметка
-- проект определяй по названию, упомянутому в записи; не уверен — null
-- "завтра", "в понедельник", "через неделю" переводи в реальную дату от сегодняшней
-- priority: high — срочно, normal — важно, low — несрочная мелочь`;
-
-    const upstream = await fetch('https://aiprimetech.io/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 2000,
-        system,
-        messages: [{ role: 'user', content: `Запись: "${text}"` }],
-      }),
-    });
-
-    if (!upstream.ok) {
-      const details = await upstream.text();
-      return json({ error: 'Сервис ИИ вернул ошибку', details }, 502, cors);
-    }
-
-    const data = await upstream.json();
-    const raw = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('')
-      .trim();
-
-    const parsed = extractJson(raw);
-    if (!parsed) return json({ error: 'Не удалось разобрать ответ', raw }, 502, cors);
-
-    return json(parsed, 200, cors);
+    const body = await request.json();
+    text = body.text;
+    projects = body.projects;
+    today = body.today;
   } catch (e) {
-    return json({ error: String(e && e.message || e) }, 500, cors);
+    return json({ error: 'Не разобрал запрос' }, 400, cors);
   }
+  if (!text || !text.trim()) return json({ error: 'Пустая запись' }, 400, cors);
+
+  const system = buildSystemPrompt(projects, today);
+  const user = 'Запись: "' + text.trim() + '"';
+  const errors = [];
+
+  // 1. Быстрый путь — Alice AI
+  if (env.YANDEX_API_KEY && env.YANDEX_FOLDER_ID) {
+    try {
+      const parsed = await askYandex(env, system, user);
+      if (parsed) return json(parsed, 200, cors);
+      errors.push('Alice AI: ответ не разобран');
+    } catch (e) {
+      errors.push('Alice AI: ' + shortErr(e));
+    }
+  }
+
+  // 2. Запасной путь — Claude
+  if (env.ANTHROPIC_API_KEY) {
+    try {
+      const parsed = await askClaude(env, system, user);
+      if (parsed) return json(parsed, 200, cors);
+      errors.push('Claude: ответ не разобран');
+    } catch (e) {
+      errors.push('Claude: ' + shortErr(e));
+    }
+  }
+
+  return json({ error: 'Разобрать не удалось', details: errors.join('; ') }, 502, cors);
 }
 
-// Ответ модели бывает обёрнут в разметку кода или пояснения.
-// Берём всё между первой { и последней } — этого достаточно и без поиска обёртки,
-// а главное, в исходнике не появляется тройных кавычек, которые ломают копирование.
+/* ---------- Задание для модели ---------- */
+
+// Явные даты и разбор типа записи подняли точность: без них модели путали
+// предстоящий созвон с протоколом совещания и ошибались в «в понедельник».
+function buildSystemPrompt(projects, today) {
+  const DOW = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+  const base = today && /^\d{4}-\d{2}-\d{2}$/.test(today) ? new Date(today + 'T00:00:00Z') : new Date();
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const plus = (n) => { const d = new Date(base); d.setUTCDate(d.getUTCDate() + n); return d; };
+  const daysToMonday = ((8 - base.getUTCDay()) % 7) || 7;
+
+  const list = (projects || []).map(p => '- ' + p.name + ' (id: ' + p.id + ')').join('\n');
+
+  return [
+    'Ты разбираешь надиктованные рабочие записи строителя.',
+    '',
+    'Доступные проекты:',
+    list || '(проектов нет)',
+    '',
+    'Сегодня ' + iso(base) + ', ' + DOW[base.getUTCDay()] + '.',
+    'Завтра ' + iso(plus(1)) + '. Ближайший понедельник ' + iso(plus(daysToMonday)) + '.',
+    '',
+    'Ответь ТОЛЬКО объектом JSON, без пояснений, с полями:',
+    '{"type":"task|protocol|note","projectId":"id или null","title":"короткая тема",',
+    ' "description":"подробности или пустая строка","dueDate":"ГГГГ-ММ-ДД или null",',
+    ' "time":"ЧЧ:ММ или null","priority":"high|normal|low"}',
+    '',
+    'Как различать тип:',
+    '- task — то, что НАДО СДЕЛАТЬ: поручение, звонок, согласование, предстоящая',
+    '  встреча или созвон. Если событие ещё впереди, это task, а не protocol.',
+    '- protocol — запись УЖЕ СОСТОЯВШЕГОСЯ совещания: что обсудили и что решили.',
+    '  Признаки: "решили", "договорились", "обсудили", само слово "протокол".',
+    '- note — просто мысль или сведение, делать ничего не надо.',
+    '',
+    'Проект определяй по названию из записи; не уверен — null.',
+    'Даты считай от сегодняшней. Если дата не названа, ставь null.',
+    'priority: high — срочно, normal — важно, low — несрочная мелочь.',
+  ].join('\n');
+}
+
+/* ---------- Обращения к моделям ---------- */
+
+async function askYandex(env, system, user) {
+  const r = await fetch(YANDEX_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Api-Key ' + env.YANDEX_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      modelUri: 'gpt://' + env.YANDEX_FOLDER_ID + '/' + YANDEX_MODEL,
+      completionOptions: { temperature: 0, maxTokens: 500 },
+      messages: [
+        { role: 'system', text: system },
+        { role: 'user', text: user },
+      ],
+    }),
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
+  const d = await r.json();
+  const txt = d && d.result && d.result.alternatives && d.result.alternatives[0]
+    ? d.result.alternatives[0].message.text : '';
+  return extractJson(txt);
+}
+
+async function askClaude(env, system, user) {
+  const r = await fetch(CLAUDE_URL, {
+    method: 'POST',
+    headers: {
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 2000,
+      system,
+      messages: [{ role: 'user', content: user }],
+    }),
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
+  const d = await r.json();
+  const txt = (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  return extractJson(txt);
+}
+
+/* ---------- Мелочи ---------- */
+
+// Ответ бывает обёрнут в разметку кода или пояснения — берём всё между
+// первой { и последней }. Тройных кавычек в исходнике при этом не появляется.
 function extractJson(s) {
   if (!s) return null;
   const start = s.indexOf('{');
@@ -114,6 +181,10 @@ function extractJson(s) {
   } catch (_) {
     return null;
   }
+}
+
+function shortErr(e) {
+  return String((e && e.message) || e).slice(0, 200);
 }
 
 function corsHeaders(origin) {
