@@ -316,7 +316,7 @@
   }
   @media (max-width: 860px) {
     body.global-dashboard #mic-fab { display: flex; }
-    body.global-dashboard .main-inner { padding-bottom: 170px; }
+    body.global-dashboard .main-inner { padding-bottom: 125px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #mic-fab.listening::before, #mic-fab.listening::after { animation: none; opacity: .4; }
@@ -486,6 +486,26 @@
   .today-hours h3, .today-untimed h3 {
     font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 12px; flex-shrink: 0;
   }
+
+  /* Дашборду прокрутка не нужна — плашки и диаграмма подгоняются под экран */
+  body.global-dashboard .main { overflow: hidden; }
+  body.global-dashboard .main-inner {
+    height: 100%; display: flex; flex-direction: column; padding-bottom: 16px;
+  }
+  body.global-dashboard header { flex-shrink: 0; }
+  body.global-dashboard #view-dashboard {
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
+  }
+  body.global-dashboard .dash-tiles { flex-shrink: 0; }
+  body.global-dashboard .dash-section {
+    flex: 1; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0;
+  }
+  body.global-dashboard .dash-chart-head,
+  body.global-dashboard .dash-legend { flex-shrink: 0; }
+  /* диаграмма забирает остаток высоты, какой бы он ни был */
+  body.global-dashboard .dash-chart-wrap { flex: 1; min-height: 120px; align-items: stretch; }
+  body.global-dashboard .chart-nav { align-self: center; }
+  body.global-dashboard .dash-chart { height: 100%; }
 
   /* На широком экране колонки прокручиваются независимо друг от друга */
   @media (min-width: 1001px) {
