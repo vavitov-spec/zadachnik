@@ -267,7 +267,7 @@
     border-radius: 8px; font-size: 16px; cursor: pointer; flex-shrink: 0;
   }
   #voice-btn {
-    width: 44px; height: 44px; font-size: 20px; line-height: 1;
+    width: 48px; height: 44px; font-size: 25px; line-height: 1;
     background: var(--soft); border: 1px solid var(--line); color: var(--ink); flex-shrink: 0;
   }
   #voice-btn.listening {
@@ -292,7 +292,7 @@
   #mic-hint.show { opacity: 1; transform: none; }
   #mic-fab {
     display: none; pointer-events: auto; position: relative;
-    width: 76px; height: 76px; border-radius: 50%; border: none;
+    width: 96px; height: 96px; border-radius: 50%; border: none;
     background: var(--accent); color: #fff; cursor: pointer;
     align-items: center; justify-content: center;
     box-shadow: 0 8px 24px rgba(0,0,0,.22);
@@ -300,7 +300,7 @@
     transition: background .15s ease, transform .1s ease;
   }
   #mic-fab:active { transform: scale(.94); }
-  #mic-fab .mic-glyph { width: 31px; height: 31px; }
+  #mic-fab .mic-glyph { width: 40px; height: 40px; }
   #mic-fab.listening { background: var(--red); }
   #mic-fab.processing { background: #6f6f68; }
   /* расходящиеся круги — видно, что идёт запись */
@@ -315,7 +315,7 @@
   }
   @media (max-width: 860px) {
     body.global-dashboard #mic-fab { display: flex; }
-    body.global-dashboard .main-inner { padding-bottom: 140px; }
+    body.global-dashboard .main-inner { padding-bottom: 170px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #mic-fab.listening::before, #mic-fab.listening::after { animation: none; opacity: .4; }
@@ -688,7 +688,7 @@
   @media (max-width: 520px) {
     .btn-add { flex: 1; }
     .btn-icon { width: 44px; height: 44px; }
-    #voice-btn { width: 44px; height: 44px; font-size: 20px; }
+    #voice-btn { width: 48px; height: 44px; font-size: 25px; }
   }
 </style>
 </head>
