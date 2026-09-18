@@ -535,8 +535,9 @@
   .dash-chart {
     flex: 1; min-width: 0; display: flex; align-items: stretch; gap: 10px; height: 220px;
     touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab;
+    transition: transform .18s ease, opacity .15s ease; will-change: transform;
   }
-  .dash-chart.dragging { cursor: grabbing; }
+  .dash-chart.dragging { cursor: grabbing; transition: none; }
   .dash-bar-col {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
     min-width: 0; padding: 4px 2px; border-radius: 10px;
@@ -1559,14 +1560,43 @@ function setDayOffset(n) {
   render();
 }
 
+var _dashAnim = false;
+
+// Неделя не подменяется рывком: старая уезжает в сторону движения,
+// новая въезжает с противоположной.
 function shiftDashWeek(n) {
+  if (_dashAnim) return;
+  var chart = document.getElementById('dash-chart');
   dashWeekOffset += n;
-  renderDashboard();
+
+  var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!chart || still) { renderDashboard(); return; }
+
+  _dashAnim = true;
+  var away = n > 0 ? -34 : 34;     // уезжает туда, куда вело движение
+  chart.classList.remove('dragging');
+  chart.style.transform = 'translateX(' + away + 'px)';
+  chart.style.opacity = '0';
+
+  setTimeout(function() {
+    renderDashboard();
+    // ставим новую неделю за противоположным краем и отпускаем
+    chart.classList.add('dragging');          // на миг без плавности
+    chart.style.transform = 'translateX(' + (-away) + 'px)';
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        chart.classList.remove('dragging');
+        chart.style.transform = '';
+        chart.style.opacity = '';
+        _dashAnim = false;
+      });
+    });
+  }, 150);
 }
 
 function resetDashWeek() {
-  dashWeekOffset = 0;
-  renderDashboard();
+  if (_dashAnim || !dashWeekOffset) return;
+  shiftDashWeek(-dashWeekOffset);      // вернётся к нулю той же анимацией
 }
 
 // листание недели пальцем или мышью прямо по диаграмме
@@ -1578,10 +1608,21 @@ function initDashSwipe() {
   _dashSwipeReady = true;
 
   var start = null;
+
   chart.addEventListener('pointerdown', function(e) {
+    if (_dashAnim) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     start = { x: e.clientX, y: e.clientY, id: e.pointerId };
-    chart.classList.add('dragging');
+    chart.classList.add('dragging');     // тянем без плавности, след в след за пальцем
+  });
+
+  chart.addEventListener('pointermove', function(e) {
+    if (!start || e.pointerId !== start.id) return;
+    var dx = e.clientX - start.x;
+    var dy = e.clientY - start.y;
+    if (Math.abs(dx) <= Math.abs(dy)) return;      // вертикальное движение не перехватываем
+    // с сопротивлением: диаграмма идёт медленнее пальца, видно, что это не свободный сдвиг
+    chart.style.transform = 'translateX(' + (dx * 0.35) + 'px)';
   });
 
   function finish(e) {
@@ -1589,16 +1630,19 @@ function initDashSwipe() {
     var dx = e.clientX - start.x;
     var dy = e.clientY - start.y;
     start = null;
-    chart.classList.remove('dragging');
-    // горизонтальное движение должно явно преобладать над вертикальным
+    chart.classList.remove('dragging');            // дальше уже с плавностью
+    chart.style.transform = '';                    // не дотянул — вернётся на место сам
+
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       shiftDashWeek(dx < 0 ? 1 : -1);
     }
   }
+
   chart.addEventListener('pointerup', finish);
   chart.addEventListener('pointercancel', function() {
     start = null;
     chart.classList.remove('dragging');
+    chart.style.transform = '';
   });
 }
 
