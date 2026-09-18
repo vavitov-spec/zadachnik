@@ -936,7 +936,7 @@ var projects = [];
 var currentProject = null;
 var filter = 'active';
 var currentView = 'list';          // today | week | list | protocols | notes
-var globalView = null;             // null — обычный проект; 'today' | 'dashboard' — сводные разделы
+var globalView = 'dashboard';      // null — обычный проект; 'today' | 'dashboard' — сводные разделы
 var weekOffset = 0;                // 0 — текущая неделя
 var notes = [];
 var protocols = [];
@@ -1013,7 +1013,7 @@ function loadTasks() {
       notes = (d && Array.isArray(d.notes)) ? d.notes : [];
       protocols = (d && Array.isArray(d.protocols)) ? d.protocols : [];
       if (d && d.currentView) currentView = d.currentView;
-      globalView = (d && d.globalView) || null;
+      globalView = 'dashboard';        // при запуске всегда открываем сводку
       if (projects.length === 0) {
         projects = [{id: 'default', name: 'Основное'}];
       }
