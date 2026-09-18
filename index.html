@@ -757,6 +757,61 @@
         </div>
       </div>
 
+      <div id="ai-parse-dialog" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-head">
+            <h2>Разобранная запись</h2>
+            <button class="modal-close" onclick="closeAiDialog()">✕</button>
+          </div>
+          <div class="modal-body">
+            <p style="color: var(--muted); font-size: 13px; margin: 0 0 16px;">Проверьте автоматически разобранные данные:</p>
+            <div class="modal-field">
+              <label>Тип записи</label>
+              <select id="ai-type" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
+                <option value="task">Задача</option>
+                <option value="protocol">Протокол</option>
+                <option value="note">Заметка</option>
+              </select>
+            </div>
+            <div class="modal-field">
+              <label>Проект</label>
+              <select id="ai-project" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
+              </select>
+            </div>
+            <div class="modal-field">
+              <label>Тема</label>
+              <input type="text" id="ai-title" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
+            </div>
+            <div class="modal-field">
+              <label>Описание</label>
+              <textarea id="ai-desc" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; min-height: 80px; resize: vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <div class="modal-field" style="flex: 1;">
+                <label>Дата</label>
+                <input type="date" id="ai-date" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
+              </div>
+              <div class="modal-field" style="flex: 1;">
+                <label>Время</label>
+                <input type="time" id="ai-time" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
+              </div>
+              <div class="modal-field" style="flex: 1;">
+                <label>Важность</label>
+                <select id="ai-priority" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
+                  <option value="normal">Важно</option>
+                  <option value="high">Срочно</option>
+                  <option value="low">Херня</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 16px 0 0;">
+            <button onclick="closeAiDialog()" class="btn-secondary" style="border: 1px solid var(--line); background: #fff; padding: 10px 16px; border-radius: 8px; cursor: pointer;">Отмена</button>
+            <button onclick="confirmAiParsed()" class="btn-primary" style="background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer;">Сохранить</button>
+          </div>
+        </div>
+      </div>
+
       <div id="view-protocols">
         <div class="entry-add">
           <button class="btn-add" onclick="openEntryModal('protocol', null)">+ Новый протокол</button>
@@ -914,9 +969,7 @@ if (typeof webkitSpeechRecognition !== 'undefined') {
       transcript += e.results[i][0].transcript;
     }
     var titleEl = document.getElementById('new-title');
-    titleEl.value = (titleEl.value.trim() + ' ' + transcript.trim()).trim();
-    titleEl.focus();
-    addTask();
+    parseVoiceWithAI(transcript);
   };
 }
 
@@ -2286,6 +2339,140 @@ function syncHeaderHeight() {
   document.documentElement.style.setProperty('--header-height', header.offsetHeight + 'px');
 }
 window.addEventListener('resize', syncHeaderHeight);
+
+// ========== AI-powered voice parsing ==========
+var _aiParsedData = null;
+
+async function parseVoiceWithAI(text) {
+  if (!text.trim()) return;
+  
+  var titleEl = document.getElementById('new-title');
+  titleEl.value = '⏳ Обработка...';
+  titleEl.disabled = true;
+  
+  try {
+    var projectsList = projects.map(function(p) { return { id: p.id, name: p.name }; });
+    var today = todayStr();
+    
+    var response = await fetch('https://zadachnic-api.vavitov.workers.dev/api/parse-voice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text,
+        projects: projectsList,
+        today: today
+      })
+    });
+    
+    if (!response.ok) {
+      var err = await response.text();
+      console.error('Worker error:', err);
+      alert('Ошибка обработки: ' + err);
+      titleEl.value = '';
+      titleEl.disabled = false;
+      return;
+    }
+    
+    var data = await response.json();
+    if (data.error) {
+      alert('Ошибка: ' + data.error);
+      titleEl.value = '';
+      titleEl.disabled = false;
+      return;
+    }
+    
+    titleEl.value = '';
+    titleEl.disabled = false;
+    fillAiDialog(data);
+    
+  } catch (e) {
+    console.error('Parse error:', e);
+    alert('Ошибка подключения: ' + e.message);
+    titleEl.value = '';
+    titleEl.disabled = false;
+  }
+}
+
+function fillAiDialog(data) {
+  _aiParsedData = data;
+  
+  document.getElementById('ai-type').value = data.type || 'task';
+  document.getElementById('ai-title').value = data.title || '';
+  document.getElementById('ai-desc').value = data.description || '';
+  document.getElementById('ai-date').value = data.dueDate || '';
+  document.getElementById('ai-time').value = data.time || '';
+  document.getElementById('ai-priority').value = data.priority || 'normal';
+  
+  var projSel = document.getElementById('ai-project');
+  projSel.innerHTML = '<option value="">Не указан</option>';
+  projects.forEach(function(p) {
+    var opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    projSel.appendChild(opt);
+  });
+  projSel.value = data.projectId || '';
+  
+  document.getElementById('ai-parse-dialog').style.display = 'flex';
+}
+
+function closeAiDialog() {
+  document.getElementById('ai-parse-dialog').style.display = 'none';
+  _aiParsedData = null;
+}
+
+function confirmAiParsed() {
+  if (!_aiParsedData) return;
+  
+  var type = document.getElementById('ai-type').value;
+  var projectId = document.getElementById('ai-project').value;
+  var title = document.getElementById('ai-title').value.trim();
+  var desc = document.getElementById('ai-desc').value.trim();
+  var dueDate = document.getElementById('ai-date').value;
+  var time = document.getElementById('ai-time').value;
+  var priority = document.getElementById('ai-priority').value;
+  
+  if (!title) {
+    alert('Укажите тему');
+    return;
+  }
+  
+  closeAiDialog();
+  
+  if (type === 'task') {
+    tasks.push({
+      id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      title: title,
+      description: desc,
+      projectId: projectId || currentProject,
+      done: false,
+      priority: priority,
+      due: dueDate || null,
+      time: time || null,
+      createdAt: Date.now(),
+      doneAt: null
+    });
+  } else if (type === 'protocol') {
+    protocols.push({
+      id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      title: title,
+      content: desc,
+      projectId: projectId || currentProject,
+      createdAt: Date.now()
+    });
+  } else if (type === 'note') {
+    notes.push({
+      id: 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      title: title,
+      content: desc,
+      projectId: projectId || currentProject,
+      createdAt: Date.now()
+    });
+  }
+  
+  saveTasks();
+  render();
+}
 
 </script>
 </body>
