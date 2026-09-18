@@ -2526,8 +2526,40 @@ function syncHeaderHeight() {
 }
 window.addEventListener('resize', syncHeaderHeight);
 
-// ========== AI-powered voice parsing ==========
+// ========== Разбор надиктованного через Claude ==========
 var _aiParsedData = null;
+
+// Адреса пробуем по порядку. Свой домен идёт первым: адрес workers.dev
+// у мобильных операторов бывает заблокирован, через вайфай при этом открывается.
+var PARSE_ENDPOINTS = [
+  'https://api.v1808.ru/api/parse-voice',
+  'https://zadachnic-api.vavitov.workers.dev/api/parse-voice'
+];
+var _liveEndpoint = null;      // адрес, который сработал в этот раз
+
+async function postToParser(payload) {
+  var order = _liveEndpoint
+    ? [_liveEndpoint].concat(PARSE_ENDPOINTS.filter(function(u) { return u !== _liveEndpoint; }))
+    : PARSE_ENDPOINTS.slice();
+
+  var lastErr = null;
+  for (var i = 0; i < order.length; i++) {
+    try {
+      var r = await fetch(order[i], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      _liveEndpoint = order[i];
+      return r;
+    } catch (e) {
+      // сюда попадаем, когда адрес недоступен: блокировка, нет сети, отвалился DNS
+      console.warn('Адрес недоступен:', order[i], e && e.message);
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Ни один адрес не ответил');
+}
 
 async function parseVoiceWithAI(text) {
   if (!text.trim()) return;
@@ -2537,17 +2569,13 @@ async function parseVoiceWithAI(text) {
   try {
     var projectsList = projects.map(function(p) { return { id: p.id, name: p.name }; });
     var today = todayStr();
-    
-    var response = await fetch('https://zadachnic-api.vavitov.workers.dev/api/parse-voice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: text,
-        projects: projectsList,
-        today: today
-      })
+
+    var response = await postToParser({
+      text: text,
+      projects: projectsList,
+      today: today
     });
-    
+
     var data = await response.json().catch(function() { return null; });
 
     if (!response.ok || !data || data.error) {
