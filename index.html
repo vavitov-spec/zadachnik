@@ -310,17 +310,6 @@
   @media (max-width: 860px) {
     body.global-dashboard #mic-fab { display: flex; }
     body.global-dashboard .main-inner { padding-bottom: 140px; }
-    /* три плашки важности — в одну строку, без переноса */
-    .dash-tiles { gap: 8px; flex-wrap: nowrap; margin: 12px 0 18px; }
-    .dash-tile { flex: 1 1 0; min-width: 0; padding: 10px 9px; }
-    .dash-tile .v { font-size: 22px; }
-    .dash-tile .k { font-size: 11px; gap: 5px; white-space: nowrap; overflow: hidden; }
-    .dash-tile .k .dot { width: 6px; height: 6px; }
-    .dash-chart-wrap { gap: 2px; }
-    .chart-nav { width: 22px; height: 40px; font-size: 15px; }
-    .dash-chart { gap: 5px; height: 190px; }
-    .dash-bar-lab { font-size: 11px; }
-    .dash-bar-col.is-today .dash-bar-lab { padding: 1px 5px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #mic-fab.listening::before, #mic-fab.listening::after { animation: none; opacity: .4; }
@@ -571,6 +560,22 @@
   .dash-day { font-size: 12px; color: var(--muted); font-weight: 600; margin: 14px 0 7px; }
   .dash-day:first-child { margin-top: 0; }
   .dash-list { display: flex; flex-direction: column; gap: 7px; }
+
+  /* Телефон: плашки в одну строку, диаграмма компактнее.
+     Блок обязан идти ПОСЛЕ основных стилей дашборда — медиазапрос
+     не повышает приоритет, решает порядок в файле. */
+  @media (max-width: 860px) {
+    .dash-tiles { gap: 8px; flex-wrap: nowrap; margin: 12px 0 18px; }
+    .dash-tile { flex: 1 1 0; min-width: 0; padding: 10px 9px; }
+    .dash-tile .v { font-size: 22px; }
+    .dash-tile .k { font-size: 11px; gap: 5px; white-space: nowrap; overflow: hidden; }
+    .dash-tile .k .dot { width: 6px; height: 6px; }
+    .dash-chart-wrap { gap: 2px; }
+    .chart-nav { width: 22px; height: 40px; font-size: 15px; }
+    .dash-chart { gap: 5px; height: 190px; }
+    .dash-bar-lab { font-size: 11px; }
+    .dash-bar-col.is-today .dash-bar-lab { padding: 1px 5px; }
+  }
 
   /* ---------- Протоколы и заметки ---------- */
   .entry-add { margin: 14px 0 12px; }
