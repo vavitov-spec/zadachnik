@@ -62,18 +62,21 @@ async function handleParseVoice(request, env, cors) {
   if (env.YANDEX_API_KEY && env.YANDEX_FOLDER_ID) {
     try {
       const parsed = await askYandex(env, system, user);
-      if (parsed) return json(parsed, 200, cors);
-      errors.push('Alice AI: ответ не разобран');
+      if (parsed) return json({ ...parsed, via: 'alice' }, 200, cors);
+      errors.push('Alice AI: ответ не разобран (возможно, цензурный фильтр)');
     } catch (e) {
       errors.push('Alice AI: ' + shortErr(e));
     }
+  } else {
+    errors.push('Alice AI пропущена: не заданы YANDEX_API_KEY и YANDEX_FOLDER_ID');
   }
 
   // 2. Запасной путь — Claude
   if (env.ANTHROPIC_API_KEY) {
     try {
       const parsed = await askClaude(env, system, user);
-      if (parsed) return json(parsed, 200, cors);
+      // via показывает, кто ответил, и почему не сработал быстрый путь
+      if (parsed) return json({ ...parsed, via: 'claude', fallback: errors.join('; ') }, 200, cors);
       errors.push('Claude: ответ не разобран');
     } catch (e) {
       errors.push('Claude: ' + shortErr(e));
