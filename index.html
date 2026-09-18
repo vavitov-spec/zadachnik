@@ -2563,8 +2563,8 @@ async function parseVoiceWithAI(text) {
 
   } catch (e) {
     console.error('Parse error:', e);
-    setVoiceStatus('idle', 'Нет связи с сервисом разбора');
-    setTimeout(function() { setVoiceStatus('idle', ''); }, 4000);
+    setVoiceStatus('idle', 'Нет связи с сервисом разбора: ' + (e && e.message ? e.message : e));
+    setTimeout(function() { setVoiceStatus('idle', ''); }, 6000);
   }
 }
 
