@@ -310,6 +310,12 @@
   @media (max-width: 860px) {
     body.global-dashboard #mic-fab { display: flex; }
     body.global-dashboard .main-inner { padding-bottom: 140px; }
+    /* три плашки важности — в одну строку, без переноса */
+    .dash-tiles { gap: 8px; flex-wrap: nowrap; margin: 12px 0 18px; }
+    .dash-tile { flex: 1 1 0; min-width: 0; padding: 10px 9px; }
+    .dash-tile .v { font-size: 22px; }
+    .dash-tile .k { font-size: 11px; gap: 5px; white-space: nowrap; overflow: hidden; }
+    .dash-tile .k .dot { width: 6px; height: 6px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #mic-fab.listening::before, #mic-fab.listening::after { animation: none; opacity: .4; }
