@@ -101,16 +101,16 @@ ${projectList || '(проектов нет)'}
   }
 }
 
-// ответ может прийти в ```json ... ``` или с текстом вокруг — достаём сам объект
+// Ответ модели бывает обёрнут в разметку кода или пояснения.
+// Берём всё между первой { и последней } — этого достаточно и без поиска обёртки,
+// а главное, в исходнике не появляется тройных кавычек, которые ломают копирование.
 function extractJson(s) {
   if (!s) return null;
-  const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const body = fenced ? fenced[1] : s;
-  const start = body.indexOf('{');
-  const end = body.lastIndexOf('}');
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
   if (start === -1 || end <= start) return null;
   try {
-    return JSON.parse(body.slice(start, end + 1));
+    return JSON.parse(s.slice(start, end + 1));
   } catch (_) {
     return null;
   }
