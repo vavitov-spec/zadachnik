@@ -316,7 +316,6 @@
   }
   @media (max-width: 860px) {
     body.global-dashboard #mic-fab { display: flex; }
-    body.global-dashboard .main-inner { padding-bottom: 125px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #mic-fab.listening::before, #mic-fab.listening::after { animation: none; opacity: .4; }
@@ -601,6 +600,11 @@
     .dash-chart-wrap { gap: 2px; }
     .chart-nav { width: 22px; height: 40px; font-size: 15px; }
     .dash-chart { gap: 5px; height: 190px; }
+    /* место под большую кнопку записи + диаграмма компактнее */
+    body.global-dashboard .main-inner { padding-bottom: 132px; }
+    body.global-dashboard .dash-chart-wrap {
+      flex: 0 1 auto; height: clamp(150px, 30vh, 250px); min-height: 0;
+    }
     .dash-bar-lab { font-size: 11px; }
     .dash-bar-col.is-today .dash-bar-lab { padding: 1px 5px; }
   }
