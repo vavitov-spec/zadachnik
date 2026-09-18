@@ -2598,11 +2598,12 @@ function closeAiDialog() {
 
 /* ==================== Голосовой ответ после сохранения ==================== */
 
-// Если захочешь свою запись вместо синтезированного голоса — положи файл
-// в репозиторий и впиши сюда путь, например 'assets/confirm.mp3'.
-var CONFIRM_SOUND_URL = null;
+// Своя запись фразы. Если файла не окажется — приложение проговорит фразу
+// системным голосом, поэтому подтверждение не пропадёт в любом случае.
+var CONFIRM_SOUND_URL = 'assets/confirm.mp3';
 var CONFIRM_PHRASE = 'Мой господин, я всё записала';
 var _ttsVoice = null;
+var _confirmAudio = null;
 
 function pickRuVoice() {
   if (!window.speechSynthesis) return null;
@@ -2647,13 +2648,29 @@ function speakSaved() {
 
   if (CONFIRM_SOUND_URL) {
     try {
-      new Audio(CONFIRM_SOUND_URL).play().catch(function(e) {
-        console.warn('Не удалось проиграть запись:', e);
-      });
-    } catch (e) { console.warn(e); }
-    return;
+      if (!_confirmAudio) {
+        _confirmAudio = new Audio(CONFIRM_SOUND_URL);
+        _confirmAudio.preload = 'auto';
+      }
+      _confirmAudio.currentTime = 0;
+      var played = _confirmAudio.play();
+      if (played && played.catch) {
+        played.catch(function(e) {
+          console.warn('Запись не проигралась, говорю голосом системы:', e);
+          speakSynth();
+        });
+      }
+      return;
+    } catch (e) {
+      console.warn(e);
+    }
   }
 
+  speakSynth();
+}
+
+// запасной вариант — системный голос
+function speakSynth() {
   if (!window.speechSynthesis) return;
   var u = new SpeechSynthesisUtterance(CONFIRM_PHRASE);
   u.lang = 'ru-RU';
