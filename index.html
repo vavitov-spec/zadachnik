@@ -565,10 +565,10 @@
   .dash-bar-col.zero .dash-bar-v { color: #c4c4c0; font-weight: 500; }
   .dash-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
   .dash-bar {
-    width: 100%; max-width: 56px; border-radius: 8px 8px 0 0; min-height: 3px;
-    overflow: hidden; display: flex; flex-direction: column;
+    width: 100%; max-width: 56px; display: flex; flex-direction: column; gap: 2px;
   }
-  .dash-bar-col.zero .dash-bar { background: var(--line); }
+  .dash-bar.empty { height: 3px; background: var(--line); border-radius: 2px; }
+  .dash-seg { flex: 1; min-height: 3px; border-radius: 3px; }
   .dash-seg.high { background: var(--red); }
   .dash-seg.normal { background: var(--amber); }
   .dash-seg.low { background: #c3c3bd; }
@@ -2118,6 +2118,48 @@ function taskDragEnd(e) {
 }
 
 /* ==================== Дашборд по всем проектам ==================== */
+var MAX_SEG = 10;      // выше столбик не растёт, сколько бы задач ни было
+
+// Возвращает цвета делений сверху вниз: сначала срочные, потом важные, потом мелочь.
+// Пока задач не больше десяти — одно деление на задачу. Дальше столбик заполнен
+// целиком, а доли перевода считаются пропорционально, с раздачей остатка тем,
+// у кого дробная часть больше — иначе из-за округления делений выйдет не десять.
+function segmentsFor(day) {
+  var order = ['high', 'normal', 'low'];
+  var n = day.n;
+  if (!n) return [];
+
+  var counts;
+  if (n <= MAX_SEG) {
+    counts = order.map(function(p) { return day.by[p]; });
+  } else {
+    var exact = order.map(function(p) { return day.by[p] / n * MAX_SEG; });
+    counts = exact.map(Math.floor);
+    var left = MAX_SEG - counts.reduce(function(a, b) { return a + b; }, 0);
+    var rest = exact
+      .map(function(v, i) { return { i: i, frac: v - Math.floor(v) }; })
+      .sort(function(a, b) { return b.frac - a.frac; });
+    for (var k = 0; k < left; k++) counts[rest[k % order.length].i]++;
+
+    // Если задачи такой важности есть, но при округлении им не досталось
+    // ни одного деления, всё равно показываем одно — забираем у самой
+    // большой группы. Иначе единственная срочная задача среди тридцати
+    // мелочей пропадала бы со столбика совсем.
+    order.forEach(function(p, i) {
+      if (day.by[p] > 0 && counts[i] === 0) {
+        var big = counts.indexOf(Math.max.apply(null, counts));
+        if (counts[big] > 1) { counts[big]--; counts[i] = 1; }
+      }
+    });
+  }
+
+  var out = [];
+  order.forEach(function(p, i) {
+    for (var j = 0; j < counts[i]; j++) out.push(p);
+  });
+  return out;
+}
+
 function renderDashboard() {
   var today = todayStr();
   var active = tasks.filter(function(t) { return !t.done; });
@@ -2167,8 +2209,6 @@ function renderDashboard() {
       }
     });
   }
-  var max = days.reduce(function(m, x) { return Math.max(m, x.n); }, 0);
-
   var fri = new Date(mon); fri.setDate(mon.getDate() + 6);
   document.getElementById('dash-chart-title').textContent =
     'Задачи на неделю ' + mon.getDate() +
@@ -2202,14 +2242,13 @@ function renderDashboard() {
     var wrap = document.createElement('div');
     wrap.className = 'dash-bar-wrap';
     var bar = document.createElement('div');
-    bar.className = 'dash-bar';
-    bar.style.height = (max > 0 ? Math.round(day.n / max * 100) : 0) + '%';
-    // части столбика: сверху срочные, ниже важные, внизу остальное
-    ['high', 'normal', 'low'].forEach(function(prio) {
-      if (!day.by[prio]) return;
+    var segs = segmentsFor(day);
+    bar.className = 'dash-bar' + (segs.length ? '' : ' empty');
+    // одно деление — одна задача; десять делений это полный столбик
+    bar.style.height = segs.length ? (segs.length / MAX_SEG * 100) + '%' : '';
+    segs.forEach(function(prio) {
       var seg = document.createElement('div');
       seg.className = 'dash-seg ' + prio;
-      seg.style.height = (day.by[prio] / day.n * 100) + '%';
       bar.appendChild(seg);
     });
     bar.title = ['high', 'normal', 'low'].map(function(prio) {
