@@ -290,6 +290,7 @@
     transition: opacity .16s ease, transform .16s ease;
   }
   #mic-hint.show { opacity: 1; transform: none; }
+  #mic-hint.tappable { pointer-events: auto; cursor: pointer; background: rgba(0, 113, 227, .95); }
   #mic-fab {
     display: none; pointer-events: auto; position: relative;
     width: 96px; height: 96px; border-radius: 50%; border: none;
@@ -859,61 +860,6 @@
             <button class="chart-nav" onclick="shiftDashWeek(-1)" aria-label="Предыдущая неделя">‹</button>
             <div class="dash-chart" id="dash-chart"></div>
             <button class="chart-nav" onclick="shiftDashWeek(1)" aria-label="Следующая неделя">›</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="ai-parse-dialog" class="modal" style="display: none;">
-        <div class="modal-content">
-          <div class="modal-head">
-            <h2>Разобранная запись</h2>
-            <button class="modal-close" onclick="closeAiDialog()">✕</button>
-          </div>
-          <div class="modal-body">
-            <p style="color: var(--muted); font-size: 13px; margin: 0 0 16px;">Проверьте автоматически разобранные данные:</p>
-            <div class="modal-field">
-              <label>Тип записи</label>
-              <select id="ai-type" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
-                <option value="task">Задача</option>
-                <option value="protocol">Протокол</option>
-                <option value="note">Заметка</option>
-              </select>
-            </div>
-            <div class="modal-field">
-              <label>Проект</label>
-              <select id="ai-project" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
-              </select>
-            </div>
-            <div class="modal-field">
-              <label>Тема</label>
-              <input type="text" id="ai-title" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
-            </div>
-            <div class="modal-field">
-              <label>Описание</label>
-              <textarea id="ai-desc" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; min-height: 80px; resize: vertical;"></textarea>
-            </div>
-            <div style="display: flex; gap: 12px;">
-              <div class="modal-field" style="flex: 1;">
-                <label>Дата</label>
-                <input type="date" id="ai-date" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
-              </div>
-              <div class="modal-field" style="flex: 1;">
-                <label>Время</label>
-                <input type="time" id="ai-time" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
-              </div>
-              <div class="modal-field" style="flex: 1;">
-                <label>Важность</label>
-                <select id="ai-priority" style="width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px;">
-                  <option value="normal">Важно</option>
-                  <option value="high">Срочно</option>
-                  <option value="low">Херня</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 16px 0 0;">
-            <button onclick="closeAiDialog()" class="btn-secondary" style="border: 1px solid var(--line); background: #fff; padding: 10px 16px; border-radius: 8px; cursor: pointer;">Отмена</button>
-            <button onclick="confirmAiParsed()" class="btn-primary" style="background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer;">Сохранить</button>
           </div>
         </div>
       </div>
@@ -2587,7 +2533,7 @@ async function parseVoiceWithAI(text) {
     }
 
     setVoiceStatus('idle', '');
-    fillAiDialog(data);
+    saveParsed(data);
 
   } catch (e) {
     console.error('Parse error:', e);
@@ -2596,32 +2542,88 @@ async function parseVoiceWithAI(text) {
   }
 }
 
-function fillAiDialog(data) {
-  _aiParsedData = data;
-  
-  document.getElementById('ai-type').value = data.type || 'task';
-  document.getElementById('ai-title').value = data.title || '';
-  document.getElementById('ai-desc').value = data.description || '';
-  document.getElementById('ai-date').value = data.dueDate || '';
-  document.getElementById('ai-time').value = data.time || '';
-  document.getElementById('ai-priority').value = data.priority || 'normal';
-  
-  var projSel = document.getElementById('ai-project');
-  projSel.innerHTML = '<option value="">Не указан</option>';
-  projects.forEach(function(p) {
-    var opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.name;
-    projSel.appendChild(opt);
-  });
-  projSel.value = data.projectId || '';
-  
-  document.getElementById('ai-parse-dialog').style.display = 'flex';
+// Записываем сразу, без окна проверки: на телефоне оно не помещалось в экран.
+// Поправить можно нажатием на подсказку — она открывает созданную запись.
+function saveParsed(data) {
+  var type = data.type === 'protocol' || data.type === 'note' ? data.type : 'task';
+  var title = (data.title || '').trim();
+  if (!title) {
+    setVoiceStatus('idle', 'Не понял, что записать');
+    setTimeout(function() { setVoiceStatus('idle', ''); }, 4000);
+    return;
+  }
+
+  var known = projects.some(function(p) { return p.id === data.projectId; });
+  var projectId = known ? data.projectId : currentProject;
+  var desc = (data.description || '').trim();
+  var id;
+
+  if (type === 'task') {
+    id = 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    tasks.push({
+      id: id,
+      title: title,
+      description: desc,
+      projectId: projectId,
+      done: false,
+      priority: ['high', 'normal', 'low'].indexOf(data.priority) !== -1 ? data.priority : 'normal',
+      due: data.dueDate || null,
+      time: data.time || null,
+      createdAt: Date.now(),
+      doneAt: null
+    });
+  } else {
+    id = (type === 'protocol' ? 'p_' : 'n_') + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    (type === 'protocol' ? protocols : notes).push({
+      id: id,
+      title: title,
+      content: desc,
+      projectId: projectId,
+      createdAt: Date.now()
+    });
+  }
+
+  saveTasks();
+  render();
+  speakSaved();
+  showSavedToast(type, id, title, projectId, data);
 }
 
-function closeAiDialog() {
-  document.getElementById('ai-parse-dialog').style.display = 'none';
-  _aiParsedData = null;
+// Короткая сводка о том, что записано. Нажатие открывает запись для правки.
+function showSavedToast(type, id, title, projectId, data) {
+  var kindName = type === 'protocol' ? 'Протокол' : type === 'note' ? 'Заметка' : 'Задача';
+  var bits = [projectName(projectId)];
+  if (data.dueDate) bits.push(humanDate(data.dueDate) + (data.time ? ' ' + data.time : ''));
+  if (data.priority === 'high') bits.push('срочно');
+
+  var hint = document.getElementById('mic-hint');
+  if (!hint) return;
+  hint.textContent = kindName + ': ' + title + ' · ' + bits.filter(Boolean).join(', ') + ' — исправить';
+  hint.classList.add('show', 'tappable');
+  hint.onclick = function() {
+    hideSavedToast();
+    if (type === 'task') openTaskModal(id);
+    else openEntryModal(type, id);
+  };
+  clearTimeout(showSavedToast._t);
+  showSavedToast._t = setTimeout(hideSavedToast, 7000);
+}
+
+function hideSavedToast() {
+  var hint = document.getElementById('mic-hint');
+  if (!hint) return;
+  hint.classList.remove('show', 'tappable');
+  hint.onclick = null;
+  hint.textContent = '';
+}
+
+function humanDate(str) {
+  var d = strToDate(str);
+  if (!d) return str;
+  if (str === todayStr()) return 'сегодня';
+  var t = new Date(); t.setDate(t.getDate() + 1);
+  if (str === dateToStr(t)) return 'завтра';
+  return d.getDate() + ' ' + MONTH_GEN[d.getMonth()];
 }
 
 /* ==================== Голосовой ответ после сохранения ==================== */
@@ -2711,60 +2713,6 @@ function speakSynth() {
 }
 
 syncVoiceReplyBtn();
-
-function confirmAiParsed() {
-  if (!_aiParsedData) return;
-  
-  var type = document.getElementById('ai-type').value;
-  var projectId = document.getElementById('ai-project').value;
-  var title = document.getElementById('ai-title').value.trim();
-  var desc = document.getElementById('ai-desc').value.trim();
-  var dueDate = document.getElementById('ai-date').value;
-  var time = document.getElementById('ai-time').value;
-  var priority = document.getElementById('ai-priority').value;
-  
-  if (!title) {
-    alert('Укажите тему');
-    return;
-  }
-  
-  closeAiDialog();
-  
-  if (type === 'task') {
-    tasks.push({
-      id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      title: title,
-      description: desc,
-      projectId: projectId || currentProject,
-      done: false,
-      priority: priority,
-      due: dueDate || null,
-      time: time || null,
-      createdAt: Date.now(),
-      doneAt: null
-    });
-  } else if (type === 'protocol') {
-    protocols.push({
-      id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      title: title,
-      content: desc,
-      projectId: projectId || currentProject,
-      createdAt: Date.now()
-    });
-  } else if (type === 'note') {
-    notes.push({
-      id: 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      title: title,
-      content: desc,
-      projectId: projectId || currentProject,
-      createdAt: Date.now()
-    });
-  }
-  
-  saveTasks();
-  render();
-  speakSaved();
-}
 
 </script>
 <div id="mic-dock">
