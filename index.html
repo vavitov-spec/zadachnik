@@ -168,6 +168,12 @@
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
   #logout-btn:active { background: #ebebe7; }
+  #voice-reply-btn {
+    width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 9px;
+    color: var(--muted); cursor: pointer; font-size: 13px; text-align: left;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  #voice-reply-btn:active { background: #ebebe7; }
 
   /* ---------- Main ---------- */
   .main { flex: 1; overflow-y: auto; }
@@ -656,6 +662,7 @@
     .sidebar-add { border: none; margin: 0; padding: 0; flex-shrink: 0; }
     .sidebar-footer { border: none; margin: 0; padding: 0; flex-shrink: 0; }
     #logout-btn { width: auto; padding: 10px 12px; white-space: nowrap; font-size: 14px; }
+    #voice-reply-btn { width: auto; padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .sidebar-add button { padding: 10px 12px; white-space: nowrap; font-size: 14px; }
     .main-inner { padding: 0 var(--gutter) 110px; }
     header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 0; margin-bottom: 0; }
@@ -757,6 +764,7 @@
       <button onclick="addProject()">+ Новый проект</button>
     </div>
     <div class="sidebar-footer">
+      <button id="voice-reply-btn" onclick="toggleVoiceReply()">Ответ голосом: вкл</button>
       <button id="logout-btn" onclick="handleLogout()">Выйти</button>
     </div>
   </aside>
@@ -2588,6 +2596,77 @@ function closeAiDialog() {
   _aiParsedData = null;
 }
 
+/* ==================== Голосовой ответ после сохранения ==================== */
+
+// Если захочешь свою запись вместо синтезированного голоса — положи файл
+// в репозиторий и впиши сюда путь, например 'assets/confirm.mp3'.
+var CONFIRM_SOUND_URL = null;
+var CONFIRM_PHRASE = 'Мой господин, я всё записала';
+var _ttsVoice = null;
+
+function pickRuVoice() {
+  if (!window.speechSynthesis) return null;
+  var voices = window.speechSynthesis.getVoices() || [];
+  var ru = voices.filter(function(v) { return /^ru/i.test(v.lang); });
+  if (!ru.length) return null;
+  // известные женские русские голоса в разных системах
+  var preferred = ['milena', 'katya', 'alyona', 'tatyana', 'google', 'yandex'];
+  for (var i = 0; i < preferred.length; i++) {
+    var name = preferred[i];
+    var hit = ru.filter(function(v) { return v.name.toLowerCase().indexOf(name) !== -1; })[0];
+    if (hit) return hit;
+  }
+  return ru[0];
+}
+
+if (window.speechSynthesis) {
+  _ttsVoice = pickRuVoice();
+  // список голосов подгружается не сразу
+  window.speechSynthesis.addEventListener('voiceschanged', function() {
+    _ttsVoice = pickRuVoice();
+  });
+}
+
+function voiceReplyOn() {
+  return localStorage.getItem('voiceReplyOff') !== '1';
+}
+
+function toggleVoiceReply() {
+  localStorage.setItem('voiceReplyOff', voiceReplyOn() ? '1' : '0');
+  syncVoiceReplyBtn();
+  if (voiceReplyOn()) speakSaved();     // сразу слышно, что включилось
+}
+
+function syncVoiceReplyBtn() {
+  var b = document.getElementById('voice-reply-btn');
+  if (b) b.textContent = 'Ответ голосом: ' + (voiceReplyOn() ? 'вкл' : 'выкл');
+}
+
+function speakSaved() {
+  if (!voiceReplyOn()) return;
+
+  if (CONFIRM_SOUND_URL) {
+    try {
+      new Audio(CONFIRM_SOUND_URL).play().catch(function(e) {
+        console.warn('Не удалось проиграть запись:', e);
+      });
+    } catch (e) { console.warn(e); }
+    return;
+  }
+
+  if (!window.speechSynthesis) return;
+  var u = new SpeechSynthesisUtterance(CONFIRM_PHRASE);
+  u.lang = 'ru-RU';
+  u.pitch = 1.35;    // выше обычного — мягче и женственнее
+  u.rate = 0.88;     // чуть медленнее
+  if (!_ttsVoice) _ttsVoice = pickRuVoice();
+  if (_ttsVoice) u.voice = _ttsVoice;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+syncVoiceReplyBtn();
+
 function confirmAiParsed() {
   if (!_aiParsedData) return;
   
@@ -2639,6 +2718,7 @@ function confirmAiParsed() {
   
   saveTasks();
   render();
+  speakSaved();
 }
 
 </script>
