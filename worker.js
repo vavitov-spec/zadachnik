@@ -119,6 +119,8 @@ function buildSystemPrompt(projects, today) {
     '  Признаки: "решили", "договорились", "обсудили", само слово "протокол".',
     '- note — просто мысль или сведение, делать ничего не надо.',
     '',
+    'Верни РОВНО ОДИН объект, не массив. Если в записи и сделанное, и',
+    'предстоящее — главное это предстоящее: тип task, сделанное уйдёт в описание.',
     'Проект определяй по названию из записи; не уверен — null.',
     'Даты считай от сегодняшней. Если дата не названа, ставь null.',
     'priority: high — срочно, normal — важно, low — несрочная мелочь.',
@@ -173,18 +175,45 @@ async function askClaude(env, system, user) {
 
 /* ---------- Мелочи ---------- */
 
-// Ответ бывает обёрнут в разметку кода или пояснения — берём всё между
-// первой { и последней }. Тройных кавычек в исходнике при этом не появляется.
+// Ответ бывает обёрнут в разметку кода или пояснения, а на составной записи
+// («смонтировали то-то, в среду проверить то-то») модель возвращает массив из
+// нескольких записей. Разбираем оба случая.
 function extractJson(s) {
-  if (!s) return null;
-  const start = s.indexOf('{');
-  const end = s.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try {
-    return JSON.parse(s.slice(start, end + 1));
-  } catch (_) {
-    return null;
+  const value = firstJsonValue(s);
+  if (!value) return null;
+  if (Array.isArray(value)) {
+    // из нескольких берём дело: незакрытая задача важнее записи о сделанном
+    const task = value.filter(x => x && x.type === 'task')[0];
+    return task || value[0] || null;
   }
+  return value;
+}
+
+// Первое сбалансированное значение JSON в тексте. Скобки внутри строк
+// не считаем, иначе описание с фигурной скобкой ломало бы разбор.
+function firstJsonValue(s) {
+  if (!s) return null;
+  for (let i = 0; i < s.length; i++) {
+    const open = s[i];
+    if (open !== '{' && open !== '[') continue;
+    const close = open === '{' ? '}' : ']';
+    let depth = 0, inStr = false, esc = false;
+    for (let j = i; j < s.length; j++) {
+      const c = s[j];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') { inStr = true; continue; }
+      if (c === open) depth++;
+      else if (c === close && --depth === 0) {
+        try { return JSON.parse(s.slice(i, j + 1)); } catch (_) { break; }
+      }
+    }
+  }
+  return null;
 }
 
 // Без таблицы дат модель хватается за первую попавшуюся дату из задания
