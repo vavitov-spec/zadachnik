@@ -574,7 +574,12 @@
   .dash-seg.low { background: #c3c3bd; }
   .dash-legend { display: flex; gap: 16px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
   .dash-legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .dash-bar-lab { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .dash-bar-lab {
+    font-size: 12px; color: var(--muted); white-space: nowrap;
+    display: flex; gap: 4px; justify-content: center;
+  }
+  /* граница между первой и второй неделей */
+  .dash-bar-col.week-start { border-left: 1px solid var(--line); margin-left: 4px; padding-left: 6px; }
   /* сегодняшний день: подложка под колонкой и подпись плашкой */
   .dash-bar-col.is-today { background: rgba(0, 113, 227, .08); }
   .dash-bar-col.is-today .dash-bar-v { color: var(--accent); }
@@ -599,13 +604,17 @@
     .dash-tile .k .dot { width: 6px; height: 6px; }
     .dash-chart-wrap { gap: 2px; }
     .chart-nav { width: 22px; height: 40px; font-size: 15px; }
-    .dash-chart { gap: 5px; height: 190px; }
+    .dash-chart { gap: 3px; height: 190px; }
+    .dash-bar { max-width: 22px; }
+    .dash-bar-col { padding: 4px 0; }
+    .dash-bar-v { font-size: 11px; }
+    .dash-bar-col.week-start { margin-left: 3px; padding-left: 3px; }
     /* место под большую кнопку записи + диаграмма компактнее */
     body.global-dashboard .main-inner { padding-bottom: 132px; }
     body.global-dashboard .dash-chart-wrap {
       flex: 0 1 auto; height: clamp(150px, 30vh, 250px); min-height: 0;
     }
-    .dash-bar-lab { font-size: 11px; }
+    .dash-bar-lab { font-size: 10px; flex-direction: column; gap: 0; line-height: 1.15; }
     .dash-bar-col.is-today .dash-bar-lab { padding: 1px 5px; }
   }
 
@@ -878,13 +887,13 @@
         <div class="dash-section">
           <div class="dash-chart-head">
             <h3 id="dash-chart-title">Текущая неделя</h3>
-            <button id="dash-week-now" onclick="resetDashWeek()">Текущая неделя</button>
+            <button id="dash-week-now" onclick="resetDashWeek()">Сегодня</button>
           </div>
           <div class="dash-legend" id="dash-legend"></div>
           <div class="dash-chart-wrap" id="dash-chart-wrap">
-            <button class="chart-nav" onclick="shiftDashWeek(-1)" aria-label="Предыдущая неделя">‹</button>
+            <button class="chart-nav" onclick="dashPage(-1)" aria-label="Предыдущие две недели">‹</button>
             <div class="dash-chart" id="dash-chart"></div>
-            <button class="chart-nav" onclick="shiftDashWeek(1)" aria-label="Следующая неделя">›</button>
+            <button class="chart-nav" onclick="dashPage(1)" aria-label="Следующие две недели">›</button>
           </div>
         </div>
       </div>
@@ -1618,6 +1627,12 @@ function shiftDashWeek(n) {
   }, 150);
 }
 
+// Листаем на весь показанный промежуток, а не на одну неделю:
+// иначе половина столбиков осталась бы прежней и было бы не понять, что сменилось.
+function dashPage(dir) {
+  shiftDashWeek(dir * DASH_WEEKS);
+}
+
 function resetDashWeek() {
   if (_dashAnim || !dashWeekOffset) return;
   shiftDashWeek(-dashWeekOffset);      // вернётся к нулю той же анимацией
@@ -1658,7 +1673,7 @@ function initDashSwipe() {
     chart.style.transform = '';                    // не дотянул — вернётся на место сам
 
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      shiftDashWeek(dx < 0 ? 1 : -1);
+      dashPage(dx < 0 ? 1 : -1);
     }
   }
 
@@ -2118,6 +2133,7 @@ function taskDragEnd(e) {
 }
 
 /* ==================== Дашборд по всем проектам ==================== */
+var DASH_WEEKS = 2;    // сколько недель показывает диаграмма дашборда
 var MAX_SEG = 8;       // выше столбик не растёт, сколько бы задач ни было
 
 // Возвращает цвета делений сверху вниз: сначала срочные, потом важные, потом мелочь.
@@ -2192,14 +2208,16 @@ function renderDashboard() {
   var mon = mondayOf(dashWeekOffset);
   document.body.classList.toggle('dash-other-week', dashWeekOffset !== 0);
   var days = [];
-  for (var i = 0; i < 7; i++) {
+  for (var i = 0; i < 7 * DASH_WEEKS; i++) {
     var d = new Date(mon);
     d.setDate(mon.getDate() + i);
     var str = dateToStr(d);
     var onDay = tasks.filter(function(t) { return t.due === str; });
     days.push({
       str: str,
-      short: DAY_SHORT[i],
+      // день недели берём из самой даты: при двух неделях счётчик уходит за предел списка
+      short: DAY_SHORT[(d.getDay() + 6) % 7],
+      newWeek: i > 0 && i % 7 === 0,
       num: d.getDate(),
       n: onDay.length,
       by: {
@@ -2209,11 +2227,11 @@ function renderDashboard() {
       }
     });
   }
-  var fri = new Date(mon); fri.setDate(mon.getDate() + 6);
+  var last = new Date(mon); last.setDate(mon.getDate() + 7 * DASH_WEEKS - 1);
   document.getElementById('dash-chart-title').textContent =
-    'Задачи на неделю ' + mon.getDate() +
-    (mon.getMonth() === fri.getMonth() ? '' : ' ' + MONTH_GEN[mon.getMonth()]) +
-    ' – ' + fri.getDate() + ' ' + MONTH_GEN[fri.getMonth()];
+    'Задачи на ' + mon.getDate() +
+    (mon.getMonth() === last.getMonth() ? '' : ' ' + MONTH_GEN[mon.getMonth()]) +
+    ' – ' + last.getDate() + ' ' + MONTH_GEN[last.getMonth()];
 
   initDashSwipe();
 
@@ -2232,7 +2250,8 @@ function renderDashboard() {
   chart.innerHTML = '';
   days.forEach(function(day) {
     var col = document.createElement('div');
-    col.className = 'dash-bar-col' + (day.n === 0 ? ' zero' : '') + (day.str === today ? ' is-today' : '');
+    col.className = 'dash-bar-col' + (day.n === 0 ? ' zero' : '')
+      + (day.str === today ? ' is-today' : '') + (day.newWeek ? ' week-start' : '');
 
     var v = document.createElement('div');
     v.className = 'dash-bar-v';
@@ -2259,7 +2278,14 @@ function renderDashboard() {
 
     var lab = document.createElement('div');
     lab.className = 'dash-bar-lab';
-    lab.textContent = day.short + ' ' + day.num;
+    var ld = document.createElement('span');
+    ld.className = 'dl-d';
+    ld.textContent = day.short;
+    var ln = document.createElement('span');
+    ln.className = 'dl-n';
+    ln.textContent = day.num;
+    lab.appendChild(ld);
+    lab.appendChild(ln);
     col.appendChild(lab);
 
     chart.appendChild(col);
