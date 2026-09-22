@@ -2099,7 +2099,13 @@ function buildHourGrid(ofDay, dayStr, nowHour) {
       if (h === HOUR_TO) return th >= HOUR_TO;
       return th === h;
     }).sort(sortForBoard);
-    inHour.forEach(function(t) { slot.appendChild(buildTaskCard(t, { showTime: true })); });
+    // Время на плашке не показываем: строка сетки его и так называет.
+    // Исключение — когда они расходятся: получасовые задачи и те, что
+    // прижаты к первой или последней строке из-за выхода за границы сетки.
+    inHour.forEach(function(t) {
+      var exact = t.time === pad2(h) + ':00';
+      slot.appendChild(buildTaskCard(t, { showTime: !exact }));
+    });
 
     row.appendChild(slot);
     hoursEl.appendChild(row);
