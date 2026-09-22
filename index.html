@@ -220,22 +220,6 @@
     background: var(--panel); color: var(--ink); font-weight: 600;
     border-color: var(--line); top: 0; box-shadow: 0 -2px 8px rgba(0,0,0,.05);
   }
-  .day-tab {
-    border: none; background: none; cursor: pointer; padding: 0 0 11px; flex-shrink: 0;
-    display: flex; align-items: baseline; gap: 9px; white-space: nowrap;
-    color: var(--muted); align-self: flex-end;
-    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-  }
-  .day-tab .dt-name { font-size: 21px; font-weight: 600; letter-spacing: -0.3px; }
-  .day-tab .dt-date { font-size: 14px; }
-  .day-tab.active { color: var(--ink); }
-  .day-tab:hover { color: var(--ink); }
-  .day-tab { display: none; }
-  body.global-mode.view-today .day-tab { display: flex; }
-  /* в сводных разделах заголовок не нужен: «Сегодня» дублировал бы переключатель,
-     а «Дашборд» — выделенный пункт левого меню */
-  body.global-mode.view-today header h1,
-  body.global-dashboard header h1 { display: none; }
   .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
   /* Строка занимает своё место всегда, даже пустая — иначе появление
      надписи сдвигало бы соседние элементы. */
@@ -501,12 +485,25 @@
   .backlog-col-head .n { margin-left: auto; font-weight: 500; color: var(--muted); }
   .backlog-drop { display: flex; flex-direction: column; gap: 7px; min-height: 60px; border-radius: 9px; padding: 2px; }
 
-  /* ---------- Сегодня ---------- */
-  .today-container { display: flex; gap: 20px; }
-  .today-hours { flex: 1; min-width: 0; }
-  .today-untimed { flex: 1; min-width: 0; }
-  .today-hours h3, .today-untimed h3 {
-    font-size: 13px; color: var(--ink); font-weight: 600; margin: 0 0 12px; flex-shrink: 0;
+  /* ---------- Сегодня: три равных дня ---------- */
+  .today-container { display: flex; gap: 16px; align-items: stretch; }
+  .today-col {
+    flex: 1 1 0; min-width: 0; display: flex; flex-direction: column;
+    border-left: 1px solid var(--line); padding-left: 16px;
+  }
+  .today-col:first-child { border-left: none; padding-left: 0; }
+  .today-col-head {
+    flex-shrink: 0; display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+  .today-col-head b { font-size: 15px; font-weight: 600; }
+  .today-col-head span { font-size: 12px; color: var(--muted); }
+  .today-col.is-today .today-col-head b { color: var(--accent); }
+  .today-hours { min-width: 0; }
+  .today-untimed { min-width: 0; flex-shrink: 0; margin-top: 12px; }
+  .today-untimed h4 {
+    font-size: 11px; color: var(--muted); font-weight: 600; margin: 0 0 7px;
+    text-transform: uppercase; letter-spacing: .3px;
   }
 
   /* Дашборду прокрутка не нужна — плашки и диаграмма подгоняются под экран */
@@ -540,8 +537,11 @@
     body.view-today header, body.view-today .add-card { flex-shrink: 0; }
     body.view-today #view-today { flex: 1; min-height: 0; display: flex; flex-direction: column; }
     .today-container { flex: 1; min-height: 0; }
-    .today-hours, .today-untimed { display: flex; flex-direction: column; min-height: 0; }
-    #today-hours, #today-untimed { flex: 1; min-height: 0; overflow-y: auto; }
+    /* в каждом дне своя прокрутка часов; список без времени прижат вниз */
+    .today-col { min-height: 0; }
+    .today-hours { flex: 1; min-height: 0; overflow-y: auto; }
+    .today-untimed { display: flex; flex-direction: column; max-height: 38%; min-height: 0; }
+    .today-untimed .today-drop { overflow-y: auto; min-height: 0; }
   }
   .today-drop { display: flex; flex-direction: column; gap: 7px; min-height: 46px; border-radius: 9px; padding: 3px; }
   .hour-row { display: flex; gap: 12px; border-top: 1px solid var(--line); padding: 3px 0; }
@@ -789,18 +789,14 @@
     .main-inner { padding: 0 var(--gutter) 110px; }
     header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 0; margin-bottom: 0; }
     header h1 { font-size: 24px; margin-bottom: 0; flex: 0 0 auto; max-width: 100%; }
-    body.global-mode.view-today .day-tab { align-self: flex-start; padding-bottom: 0; }
-    .day-tab .dt-name { font-size: 18px; }
-    .day-tab .dt-date { font-size: 13px; }
     .view-tabs { gap: 2px; padding-bottom: 0; width: 100%; }
     .vtab { padding: 9px 12px; font-size: 13px; top: 0; }
     .vtab.active { top: 0; }
     .week-col { min-width: 190px; flex: 0 0 auto; }
   }
   @media (max-width: 1000px) {
-    .today-container { flex-direction: column; gap: 16px; }
-    .today-hours { flex: 1; }
-    .today-untimed { flex: 1; }
+    .today-container { flex-direction: column; gap: 18px; }
+    .today-col { border-left: none; padding-left: 0; }
   }
   @media (max-width: 860px) {
     .add-card { flex-wrap: wrap; gap: 8px; }
@@ -896,9 +892,7 @@
     <div class="main-inner">
       <header>
         <h1 id="project-title">Задачник</h1>
-        <button class="day-tab" data-day="0" onclick="setDayOffset(0)">
-          <span class="dt-name">Сегодня</span><span class="dt-date" id="dt-date-0"></span>
-        </button>
+
         <div class="view-tabs" id="view-tabs">
           <button class="vtab" data-view="today" onclick="setView('today')">Сегодня</button>
           <button class="vtab" data-view="week" onclick="setView('week')">Неделя</button>
@@ -907,9 +901,6 @@
           <button class="vtab" data-view="notes" onclick="setView('notes')">Заметки</button>
         </div>
         <div class="header-right">
-          <button class="day-tab" data-day="1" onclick="setDayOffset(1)">
-            <span class="dt-name">Завтра</span><span class="dt-date" id="dt-date-1"></span>
-          </button>
         </div>
       </header>
       <div class="stats" id="stats"></div>
@@ -957,16 +948,7 @@
       </div>
 
       <div id="view-today">
-        <div class="today-container">
-          <div class="today-hours">
-            <h3>По часам</h3>
-            <div id="today-hours"></div>
-          </div>
-          <div class="today-untimed">
-            <h3>Без времени</h3>
-            <div class="today-drop" id="today-untimed" data-drop="untimed"></div>
-          </div>
-        </div>
+        <div class="today-container" id="today-container"></div>
       </div>
 
       <div id="view-dashboard">
@@ -1385,7 +1367,7 @@ function addTask() {
   var title = titleEl.value.trim();
   if (!title) return;
   var due = document.getElementById('new-due').value || null;
-  if (!due && currentView === 'today') due = viewDayStr();
+  if (!due && currentView === 'today') due = todayStr();
   var priority = document.getElementById('new-priority').value;
   tasks.push({
     id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -1412,7 +1394,6 @@ function addTask() {
 function selectProject(id) {
   currentProject = id;
   globalView = null;
-  dayOffset = 0;
   saveTasks();
   render();
 }
@@ -1420,7 +1401,6 @@ function selectProject(id) {
 // Сводные разделы над списком проектов: собирают задачи всех проектов сразу
 function selectGlobal(v) {
   globalView = v;
-  dayOffset = 0;
   saveTasks();
   render();
 }
@@ -1647,7 +1627,6 @@ var DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 var MONTH_GEN = ['января','февраля','марта','апреля','мая','июня',
                  'июля','августа','сентября','октября','ноября','декабря'];
 var _weekDayStrs = [];
-var dayOffset = 0;                 // 0 — сегодня, 1 — завтра
 var dashWeekOffset = 0;            // какая неделя показана на диаграмме дашборда
 var HOUR_FROM = 9;
 var HOUR_TO = 21;
@@ -1655,7 +1634,6 @@ var HOUR_TO = 21;
 function setView(v) {
   currentView = v;
   weekOffset = 0;
-  dayOffset = 0;
   saveTasks();
   render();
 }
@@ -1687,19 +1665,6 @@ function shiftWeek(n) {
 function projectTasks() {
   if (globalView) return tasks.slice();          // сводный раздел — все проекты
   return tasks.filter(function(t) { return t.projectId === currentProject; });
-}
-
-// дата дня, который сейчас открыт во вкладке «Сегодня»
-function viewDayStr() {
-  var d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + dayOffset);
-  return dateToStr(d);
-}
-
-function setDayOffset(n) {
-  dayOffset = n;
-  render();
 }
 
 var _dashAnim = false;
@@ -2062,36 +2027,48 @@ function renderWeek() {
 }
 
 /* ---------- Вкладка «Сегодня» ---------- */
+var TODAY_COLS = [
+  { off: 0, name: 'Сегодня' },
+  { off: 1, name: 'Завтра' },
+  { off: 2, name: 'Послезавтра' }
+];
+
 function renderToday() {
-  var dayStr = viewDayStr();
+  var box = document.getElementById('today-container');
+  box.innerHTML = '';
+  var mine = projectTasks();
+  var nowHour = new Date().getHours();
 
-  // подписи обоих дней: слева сегодня, справа завтра; серым — тот, что не открыт
-  [0, 1].forEach(function(off) {
-    var dd = new Date();
-    dd.setHours(0, 0, 0, 0);
-    dd.setDate(dd.getDate() + off);
-    document.getElementById('dt-date-' + off).textContent =
-      DAY_SHORT[(dd.getDay() + 6) % 7] + ', ' + dd.getDate() + ' ' + MONTH_GEN[dd.getMonth()];
+  TODAY_COLS.forEach(function(c) {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + c.off);
+    var dayStr = dateToStr(d);
+    var ofDay = mine.filter(function(t) { return t.due === dayStr; });
+
+    var col = document.createElement('div');
+    col.className = 'today-col' + (c.off === 0 ? ' is-today' : '');
+
+    // заголовок: название дня и дата под ним
+    var head = document.createElement('div');
+    head.className = 'today-col-head';
+    var h = document.createElement('b');
+    h.textContent = c.name;
+    var sub = document.createElement('span');
+    sub.textContent = DAY_SHORT[(d.getDay() + 6) % 7] + ', ' + d.getDate() + ' ' + MONTH_GEN[d.getMonth()];
+    head.appendChild(h);
+    head.appendChild(sub);
+    col.appendChild(head);
+
+    col.appendChild(buildHourGrid(ofDay, dayStr, c.off === 0 ? nowHour : -1));
+    col.appendChild(buildUntimedBox(ofDay, dayStr));
+    box.appendChild(col);
   });
-  document.querySelectorAll('.day-tab').forEach(function(b) {
-    b.classList.toggle('active', +b.dataset.day === dayOffset);
-  });
+}
 
-  var mine = projectTasks().filter(function(t) { return t.due === dayStr; });
-
-  var untimedEl = document.getElementById('today-untimed');
-  untimedEl.innerHTML = '';
-  untimedEl.dataset.date = dayStr;
-  var untimed = mine.filter(function(t) { return !t.time; }).sort(sortForBoard);
-  if (untimed.length === 0) {
-    untimedEl.innerHTML = '<div class="week-empty">Перетащите сюда задачу, чтобы снять время</div>';
-  } else {
-    untimed.forEach(function(t) { untimedEl.appendChild(buildTaskCard(t, { showDesc: true })); });
-  }
-
-  var hoursEl = document.getElementById('today-hours');
-  hoursEl.innerHTML = '';
-  var nowHour = dayOffset === 0 ? new Date().getHours() : -1;
+function buildHourGrid(ofDay, dayStr, nowHour) {
+  var hoursEl = document.createElement('div');
+  hoursEl.className = 'today-hours';
 
   for (var h = HOUR_FROM; h <= HOUR_TO; h++) {
     var row = document.createElement('div');
@@ -2109,18 +2086,42 @@ function renderToday() {
     slot.dataset.time = pad2(h) + ':00';
 
     // задачи раньше первой и позже последней строки не теряем — прижимаем к краю
-    var inHour = mine.filter(function(t) {
+    var inHour = ofDay.filter(function(t) {
       if (!t.time) return false;
       var th = parseInt(t.time.split(':')[0], 10);
       if (h === HOUR_FROM) return th <= HOUR_FROM;
       if (h === HOUR_TO) return th >= HOUR_TO;
       return th === h;
     }).sort(sortForBoard);
-    inHour.forEach(function(t) { slot.appendChild(buildTaskCard(t, { showDesc: true, showTime: true })); });
+    inHour.forEach(function(t) { slot.appendChild(buildTaskCard(t, { showTime: true })); });
 
     row.appendChild(slot);
     hoursEl.appendChild(row);
   }
+  return hoursEl;
+}
+
+function buildUntimedBox(ofDay, dayStr) {
+  var box = document.createElement('div');
+  box.className = 'today-untimed';
+
+  var title = document.createElement('h4');
+  title.textContent = 'Без времени';
+  box.appendChild(title);
+
+  var drop = document.createElement('div');
+  drop.className = 'today-drop';
+  drop.dataset.drop = 'untimed';
+  drop.dataset.date = dayStr;
+
+  var untimed = ofDay.filter(function(t) { return !t.time; }).sort(sortForBoard);
+  if (untimed.length === 0) {
+    drop.innerHTML = '<div class="week-empty">—</div>';
+  } else {
+    untimed.forEach(function(t) { drop.appendChild(buildTaskCard(t)); });
+  }
+  box.appendChild(drop);
+  return box;
 }
 
 /* ---------- Перетаскивание задач между колонками и часами ---------- */
