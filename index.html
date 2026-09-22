@@ -217,8 +217,10 @@
   .day-tab:hover { color: var(--ink); }
   .day-tab { display: none; }
   body.global-mode.view-today .day-tab { display: flex; }
-  /* в сводном разделе слово «Сегодня» уже стоит переключателем — заголовок не дублируем */
-  body.global-mode.view-today header h1 { display: none; }
+  /* в сводных разделах заголовок не нужен: «Сегодня» дублировал бы переключатель,
+     а «Дашборд» — выделенный пункт левого меню */
+  body.global-mode.view-today header h1,
+  body.global-dashboard header h1 { display: none; }
   .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
   #save-indicator { min-width: 110px; text-align: right; font-size: 13px; }
 
@@ -532,11 +534,11 @@
   .dash-tiles { display: flex; gap: 12px; margin: 16px 0 24px; flex-wrap: wrap; }
   .dash-tile {
     flex: 1 1 150px; background: var(--soft); border: 1px solid var(--line);
-    border-radius: 12px; padding: 14px 16px;
-    display: flex; align-items: center; gap: 9px;
+    border-radius: 10px; padding: 7px 12px;
+    display: flex; align-items: center; gap: 8px;
   }
-  .dash-tile .k { font-size: 14px; color: var(--muted); }
-  .dash-tile .v { margin-left: auto; font-size: 26px; font-weight: 600; line-height: 1; }
+  .dash-tile .k { font-size: 13px; color: var(--muted); }
+  .dash-tile .v { margin-left: auto; font-size: 19px; font-weight: 600; line-height: 1.2; }
   .dash-tile.warn .v { color: var(--red); }
 
   .dash-chart-head { display: flex; align-items: center; gap: 12px; }
@@ -628,29 +630,32 @@
   .dash-projects-box, .dash-right { display: none; }
 
   @media (min-width: 768px) {
-    .dash-tiles { flex-wrap: nowrap; margin: 14px 0 18px; }
+    .dash-tiles { flex-wrap: nowrap; margin: 12px 0 14px; }
 
     .dash-split {
-      display: grid; grid-template-columns: 1fr 2fr; gap: 0;
+      display: grid; grid-template-columns: minmax(230px, 27%) 1fr; gap: 0;
       flex: 1; min-height: 0;
     }
     .dash-left {
       display: flex; flex-direction: column; min-height: 0;
-      padding-right: 22px; border-right: 1px solid var(--line);
+      padding-right: 18px; border-right: 1px solid var(--line);
     }
     .dash-right {
-      display: flex; flex-direction: column; min-height: 0; padding-left: 22px;
+      display: flex; flex-direction: column; min-height: 0; padding-left: 18px;
     }
     .dash-projects-box { display: block; }
 
     /* две недели одна под другой, столбики ниже */
-    .dash-left .dash-chart { flex-direction: column; height: auto; gap: 14px; }
-    .dash-left .dash-week { flex: 0 0 auto; height: 96px; gap: 5px; }
+    .dash-left .dash-chart { flex-direction: column; height: auto; gap: 12px; }
+    .dash-left .dash-week { flex: 0 0 auto; height: 76px; gap: 4px; }
     .dash-left .dash-week.second { border-left: none; padding-left: 0; }
-    .dash-left .dash-bar { max-width: 26px; }
-    .dash-left .dash-bar-v { font-size: 11px; }
-    .dash-left .dash-bar-lab { font-size: 11px; gap: 3px; }
-    .dash-left .dash-section { flex: 0 0 auto; margin-bottom: 18px; }
+    .dash-left .dash-bar { max-width: 20px; }
+    .dash-left .dash-bar-col { gap: 3px; padding: 2px 0; }
+    .dash-left .dash-bar-v { font-size: 10px; }
+    .dash-left .dash-bar-lab { font-size: 10px; gap: 3px; }
+    .dash-left .dash-legend { font-size: 11px; gap: 12px; margin-bottom: 8px; }
+    .dash-left .dash-chart-head h3 { font-size: 12px; }
+    .dash-left .dash-section { flex: 0 0 auto; margin-bottom: 14px; }
     .dash-left .dash-chart-wrap { flex: 0 0 auto; height: auto; }
 
     /* список проектов с ползунками */
@@ -979,9 +984,9 @@
               </div>
               <div class="dash-legend" id="dash-legend"></div>
               <div class="dash-chart-wrap" id="dash-chart-wrap">
-                <button class="chart-nav" onclick="dashPage(-1)" aria-label="Предыдущие две недели">‹</button>
+                <button class="chart-nav" onclick="dashPage(-1)" aria-label="Предыдущая неделя">‹</button>
                 <div class="dash-chart" id="dash-chart"></div>
-                <button class="chart-nav" onclick="dashPage(1)" aria-label="Следующие две недели">›</button>
+                <button class="chart-nav" onclick="dashPage(1)" aria-label="Следующая неделя">›</button>
               </div>
             </div>
 
@@ -2257,7 +2262,7 @@ function taskDragEnd(e) {
 }
 
 /* ==================== Дашборд по всем проектам ==================== */
-var DASH_WEEKS = 2;    // сколько недель показывает диаграмма дашборда
+var DASH_WEEKS = 1;    // сколько недель показывает диаграмма дашборда
 var hiddenProjects = [];   // проекты, снятые ползунком на дашборде
 var MAX_SEG = 8;       // выше столбик не растёт, сколько бы задач ни было
 
