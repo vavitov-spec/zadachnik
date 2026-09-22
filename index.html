@@ -205,10 +205,11 @@
     font-size: 28px; margin: 0; letter-spacing: -0.5px; font-weight: 600;
     flex: 0 0 230px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  /* В сводных разделах заголовок не нужен: «Сегодня» дублирует подпись первой
-     колонки, «Дашборд» — выделенный пункт левого меню. */
-  body.global-mode.view-today header h1,
-  body.global-dashboard header h1 { display: none; }
+  /* В сводных разделах в шапке ничего не остаётся: заголовок дублировал бы
+     подпись колонки или пункт меню, закладки проекта там не нужны, а отметка
+     о сохранении уехала в подвал меню. Поэтому убираем шапку целиком —
+     иначе от неё остаётся пустая полоса с линией. */
+  body.global-mode header { display: none; }
   .view-tabs {
     display: flex; gap: 4px; margin: 0;
     overflow-x: auto; align-items: flex-end; padding-bottom: 0;
@@ -224,7 +225,6 @@
     background: var(--panel); color: var(--ink); font-weight: 600;
     border-color: var(--line); top: 0; box-shadow: 0 -2px 8px rgba(0,0,0,.05);
   }
-  .header-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); flex-shrink: 0; }
   /* Строка занимает своё место всегда, даже пустая — иначе появление
      надписи сдвигало бы соседние элементы. */
   #save-indicator {
@@ -907,8 +907,6 @@
           <button class="vtab" data-view="list" onclick="setView('list')">Список</button>
           <button class="vtab" data-view="protocols" onclick="setView('protocols')">Протоколы</button>
           <button class="vtab" data-view="notes" onclick="setView('notes')">Заметки</button>
-        </div>
-        <div class="header-right">
         </div>
       </header>
       <div class="stats" id="stats"></div>
