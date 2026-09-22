@@ -537,11 +537,15 @@
     body.view-today header, body.view-today .add-card { flex-shrink: 0; }
     body.view-today #view-today { flex: 1; min-height: 0; display: flex; flex-direction: column; }
     .today-container { flex: 1; min-height: 0; }
-    /* в каждом дне своя прокрутка часов; список без времени прижат вниз */
-    .today-col { min-height: 0; }
-    .today-hours { flex: 1; min-height: 0; overflow-y: auto; }
-    .today-untimed { display: flex; flex-direction: column; max-height: 38%; min-height: 0; }
-    .today-untimed .today-drop { overflow-y: auto; min-height: 0; }
+    /* Прокручивается колонка целиком, а не только часы: тогда список задач
+       без времени идёт сразу под строкой 19:00, а не прижимается к низу экрана. */
+    .today-col { min-height: 0; overflow-y: auto; }
+    .today-hours { flex: 0 0 auto; }
+    .today-untimed { flex: 0 0 auto; }
+    /* заголовок дня остаётся на месте при прокрутке */
+    .today-col-head {
+      position: sticky; top: 0; z-index: 2; background: var(--panel); margin-bottom: 10px;
+    }
   }
   .today-drop { display: flex; flex-direction: column; gap: 7px; min-height: 46px; border-radius: 9px; padding: 3px; }
   .hour-row { display: flex; gap: 12px; border-top: 1px solid var(--line); padding: 3px 0; }
