@@ -664,10 +664,10 @@
   }
 
   /* ---------- Дашборд на планшете и компьютере ---------- */
-  .dash-right { display: none; }
+  .dash-right, .dash-create, .dash-mic { display: none; }
   /* на телефоне плашки над диаграммой, как было */
   @media (max-width: 767px) {
-    body.global-dashboard .dash-tiles { order: -1; }
+    body.global-dashboard .dash-bottom { order: -1; }
   }
 
   @media (min-width: 768px) {
@@ -685,11 +685,30 @@
     .dash-bar-v, .dash-bar-lab { font-size: 10px; }
     .dash-bar-lab { gap: 3px; }
 
-    /* ниже плашки */
-    .dash-tiles { flex-wrap: nowrap; margin: 0 0 14px; }
-
-    /* ниже общий список на всю ширину, со своей прокруткой */
-    .dash-right { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    /* под диаграммой: список задач 80%, справа колонка 20% */
+    .dash-bottom {
+      flex: 1; min-height: 0; display: grid; grid-template-columns: 4fr 1fr; gap: 18px;
+    }
+    .dash-right { display: flex; flex-direction: column; min-height: 0; }
+    .dash-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .dash-side .dash-tiles { flex-direction: column; flex-wrap: nowrap; gap: 8px; margin: 0; }
+    .dash-side .dash-tile { flex: 0 0 auto; }
+    .dash-create, .dash-mic { display: flex; }
+    .dash-create {
+      align-items: center; justify-content: center; height: 40px; border: none; border-radius: 10px;
+      background: var(--accent); color: #fff; font-size: 14px; font-weight: 500; cursor: pointer;
+    }
+    .dash-create:hover { background: #0062c4; }
+    .dash-mic {
+      flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      min-height: 130px; border: 1px solid var(--line); border-radius: 14px;
+      background: var(--soft); color: var(--accent); font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: background .15s ease, color .15s ease;
+    }
+    .dash-mic svg { width: 44px; height: 44px; }
+    .dash-mic:hover { background: #ececea; }
+    .dash-mic.listening { background: var(--red); border-color: var(--red); color: #fff; animation: pulse 1s infinite; }
+    .dash-mic.processing { background: #6f6f68; border-color: #6f6f68; color: #fff; }
 
     /* таблица задач */
     .dash-table-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -976,8 +995,7 @@
           </div>
         </div>
 
-        <div class="dash-tiles" id="dash-tiles"></div>
-
+        <div class="dash-bottom">
         <div class="dash-right">
           <div class="dash-table-head">
             <h3>Задачи</h3>
@@ -991,6 +1009,20 @@
               <tbody id="dash-table-body"></tbody>
             </table>
           </div>
+        </div>
+
+        <div class="dash-side">
+          <div class="dash-tiles" id="dash-tiles"></div>
+          <button class="dash-create" onclick="createTaskFromDashboard()">+ Создать задачу</button>
+          <button class="dash-mic" id="mic-side" onclick="toggleVoice()" aria-label="Надиктовать задачу">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="2" width="6" height="12" rx="3"/>
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+            </svg>
+            <span>Надиктовать</span>
+          </button>
+        </div>
         </div>
       </div>
 
@@ -1132,7 +1164,7 @@ var _voiceFinal = '';
 
 // Состояние диктовки показываем на обеих кнопках сразу и текстом над большой кнопкой
 function setVoiceStatus(state, text) {
-  ['voice-btn', 'mic-fab'].forEach(function(id) {
+  ['voice-btn', 'mic-fab', 'mic-side'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.classList.toggle('listening', state === 'listening');
@@ -1583,7 +1615,26 @@ function openTaskModal(id) {
   document.getElementById('task-title-input').focus();
 }
 
+// Задача, созданная кнопкой на дашборде: пока её не сохранили, это черновик.
+// Закрыл окно без сохранения — черновик исчезает, пустых задач не остаётся.
+var _draftTaskId = null;
+
+function createTaskFromDashboard() {
+  var id = 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  tasks.push({
+    id: id, title: '', description: '', projectId: currentProject, done: false,
+    priority: 'normal', due: null, time: null, createdAt: Date.now(), doneAt: null
+  });
+  _draftTaskId = id;
+  openTaskModal(id);
+}
+
 function closeTaskModal() {
+  if (_draftTaskId && currentTaskId === _draftTaskId) {
+    var draft = _draftTaskId;
+    tasks = tasks.filter(function(x) { return x.id !== draft; });
+    _draftTaskId = null;
+  }
   currentTaskId = null;
   document.getElementById('task-modal').classList.remove('visible');
 }
@@ -1592,6 +1643,13 @@ function saveTaskModal() {
   if (!currentTaskId) return;
   var t = tasks.find(function(x) { return x.id === currentTaskId; });
   if (!t) return;
+  if (currentTaskId === _draftTaskId) {
+    if (!document.getElementById('task-title-input').value.trim()) {
+      document.getElementById('task-title-input').focus();   // без темы не сохраняем
+      return;
+    }
+    _draftTaskId = null;
+  }
   t.title = document.getElementById('task-title-input').value.trim() || t.title;
   t.description = document.getElementById('task-desc-input').value;
   t.due = document.getElementById('task-due-input').value || null;
