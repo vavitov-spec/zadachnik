@@ -624,6 +624,9 @@
   }
 
   /* сегодняшний день: подложка под колонкой и подпись плашкой */
+  /* выходные чуть серее; правило стоит выше «сегодня», чтобы сегодняшний день
+     в субботу или воскресенье всё равно подсвечивался голубым */
+  .dash-bar-col.weekend { background: rgba(0, 0, 0, .045); }
   .dash-bar-col.is-today { background: rgba(0, 113, 227, .08); }
   .dash-bar-col.is-today .dash-bar-v { color: var(--accent); }
   .dash-bar-col.is-today .dash-bar-lab {
@@ -677,7 +680,7 @@
     body.global-dashboard .dash-chart { height: 100%; gap: 0; }
     .dash-week { gap: 4px; }
     .dash-week + .dash-week { border-left: 1px solid var(--line); padding-left: 6px; margin-left: 6px; }
-    .dash-bar { max-width: 28px; }
+    .dash-bar { max-width: none; width: 84%; }   /* столбик почти во всю колонку */
     .dash-bar-col { gap: 3px; padding: 2px 0; }
     .dash-bar-v, .dash-bar-lab { font-size: 10px; }
     .dash-bar-lab { gap: 3px; }
@@ -2412,7 +2415,8 @@ function renderDashChart(shownTasks, today) {
 
 function buildDayColumn(day, today) {
   var col = document.createElement('div');
-  col.className = 'dash-bar-col' + (day.n === 0 ? ' zero' : '') + (day.str === today ? ' is-today' : '');
+  col.className = 'dash-bar-col' + (day.n === 0 ? ' zero' : '') + (day.str === today ? ' is-today' : '')
+    + (day.short === 'Сб' || day.short === 'Вс' ? ' weekend' : '');
 
   var v = document.createElement('div');
   v.className = 'dash-bar-v';
