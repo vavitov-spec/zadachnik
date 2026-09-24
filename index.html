@@ -2924,7 +2924,8 @@ async function postToParser(payload) {
     } catch (e) {
       // сюда попадаем, когда адрес недоступен: блокировка, нет сети, отвалился DNS
       console.warn('Адрес недоступен:', order[i], e && e.message);
-      lastErr = e;
+      var host = order[i].split('/')[2];
+      lastErr = new Error((lastErr ? lastErr.message + '; ' : '') + host + ' — ' + ((e && e.message) || e));
     }
   }
   throw lastErr || new Error('Ни один адрес не ответил');
@@ -2955,13 +2956,22 @@ async function parseVoiceWithAI(text) {
       return;
     }
 
-    setVoiceStatus('idle', '');
-    saveParsed(data);
-
   } catch (e) {
     console.error('Parse error:', e);
     setVoiceStatus('idle', 'Нет связи с сервисом разбора: ' + (e && e.message ? e.message : e));
-    setTimeout(function() { setVoiceStatus('idle', ''); }, 6000);
+    setTimeout(function() { setVoiceStatus('idle', ''); }, 9000);
+    return;
+  }
+
+  // Сохранение вынесено из блока связи: раньше любая ошибка здесь
+  // показывалась как «нет связи», хотя сервер уже ответил.
+  setVoiceStatus('idle', '');
+  try {
+    saveParsed(data);
+  } catch (e) {
+    console.error('Save error:', e);
+    setVoiceStatus('idle', 'Разобрал, но не смог сохранить: ' + (e && e.message ? e.message : e));
+    setTimeout(function() { setVoiceStatus('idle', ''); }, 9000);
   }
 }
 
