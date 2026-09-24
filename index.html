@@ -624,9 +624,9 @@
   }
 
   /* сегодняшний день: подложка под колонкой и подпись плашкой */
-  /* выходные чуть серее; правило стоит выше «сегодня», чтобы сегодняшний день
-     в субботу или воскресенье всё равно подсвечивался голубым */
-  .dash-bar-col.weekend { background: rgba(0, 0, 0, .045); }
+  /* у выходных серая плашка под подписью дня; правило стоит выше «сегодня»,
+     чтобы сегодняшний день в субботу или воскресенье всё равно был голубым */
+  .dash-bar-col.weekend .dash-bar-lab { background: #ececea; padding: 1px 6px; border-radius: 999px; }
   .dash-bar-col.is-today { background: rgba(0, 113, 227, .08); }
   .dash-bar-col.is-today .dash-bar-v { color: var(--accent); }
   .dash-bar-col.is-today .dash-bar-lab {
