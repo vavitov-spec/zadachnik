@@ -668,12 +668,12 @@
   }
 
   @media (min-width: 768px) {
-    /* сверху диаграмма на всю ширину: три недели в один ряд */
+    /* сверху диаграмма на всю ширину: две недели в один ряд */
     body.global-dashboard .dash-section { flex: 0 0 auto; margin: 12px 0 12px; }
     .dash-chart-head { gap: 14px; margin-bottom: 8px; }
     .dash-chart-head .dash-legend { margin: 0 0 0 auto; font-size: 11px; gap: 12px; }
     .dash-chart-head h3 { font-size: 13px; }
-    body.global-dashboard .dash-chart-wrap { flex: 0 0 auto; height: 130px; }
+    body.global-dashboard .dash-chart-wrap { flex: 0 0 auto; height: 96px; }
     body.global-dashboard .dash-chart { height: 100%; gap: 0; }
     .dash-week { gap: 4px; }
     .dash-week + .dash-week { border-left: 1px solid var(--line); padding-left: 6px; margin-left: 6px; }
@@ -2265,8 +2265,8 @@ function taskDragEnd(e) {
 }
 
 /* ==================== Дашборд по всем проектам ==================== */
-// сколько недель показывает диаграмма: на планшете и компьютере три в ряд, на телефоне одна
-function dashWeeks() { return window.innerWidth >= 768 ? 3 : 1; }
+// сколько недель показывает диаграмма: на планшете и компьютере две в ряд, на телефоне одна
+function dashWeeks() { return window.innerWidth >= 768 ? 2 : 1; }
 var _dashWide = window.innerWidth >= 768;
 window.addEventListener('resize', function() {
   var wide = window.innerWidth >= 768;
