@@ -576,7 +576,8 @@
   .dash-tile .v { margin-left: auto; font-size: 19px; font-weight: 600; line-height: 1.2; }
   .dash-tile.warn .v { color: var(--red); }
 
-  .dash-chart-head { display: flex; align-items: center; gap: 12px; }
+  .dash-chart-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .dash-chart-head .dash-legend { margin: 0; }
   .dash-chart-head h3 { margin: 0; }
   #dash-week-now {
     display: none; border: 1px solid var(--line); background: #fff; border-radius: 7px;
@@ -594,7 +595,6 @@
   .chart-nav:hover { background: var(--soft); }
 
   .dash-week { display: flex; align-items: stretch; gap: 10px; flex: 1; min-width: 0; }
-  .dash-week.second { border-left: 1px solid var(--line); padding-left: 10px; }
   .dash-chart {
     flex: 1; min-width: 0; display: flex; align-items: stretch; gap: 10px; height: 220px;
     touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab;
@@ -661,36 +661,32 @@
   }
 
   /* ---------- Дашборд на планшете и компьютере ---------- */
-  .dash-split { display: block; }
   .dash-right { display: none; }
+  /* на телефоне плашки над диаграммой, как было */
+  @media (max-width: 767px) {
+    body.global-dashboard .dash-tiles { order: -1; }
+  }
 
   @media (min-width: 768px) {
-    .dash-tiles { flex-wrap: nowrap; margin: 12px 0 14px; }
+    /* сверху диаграмма на всю ширину: три недели в один ряд */
+    body.global-dashboard .dash-section { flex: 0 0 auto; margin: 12px 0 12px; }
+    .dash-chart-head { gap: 14px; margin-bottom: 8px; }
+    .dash-chart-head .dash-legend { margin: 0 0 0 auto; font-size: 11px; gap: 12px; }
+    .dash-chart-head h3 { font-size: 13px; }
+    body.global-dashboard .dash-chart-wrap { flex: 0 0 auto; height: 130px; }
+    body.global-dashboard .dash-chart { height: 100%; gap: 0; }
+    .dash-week { gap: 4px; }
+    .dash-week + .dash-week { border-left: 1px solid var(--line); padding-left: 6px; margin-left: 6px; }
+    .dash-bar { max-width: 28px; }
+    .dash-bar-col { gap: 3px; padding: 2px 0; }
+    .dash-bar-v, .dash-bar-lab { font-size: 10px; }
+    .dash-bar-lab { gap: 3px; }
 
-    .dash-split {
-      display: grid; grid-template-columns: minmax(230px, 27%) 1fr; gap: 0;
-      flex: 1; min-height: 0;
-    }
-    .dash-left {
-      display: flex; flex-direction: column; min-height: 0;
-      padding-right: 18px; border-right: 1px solid var(--line);
-    }
-    .dash-right {
-      display: flex; flex-direction: column; min-height: 0; padding-left: 18px;
-    }
+    /* ниже плашки */
+    .dash-tiles { flex-wrap: nowrap; margin: 0 0 14px; }
 
-    /* две недели одна под другой, столбики ниже */
-    .dash-left .dash-chart { flex-direction: column; height: auto; gap: 12px; }
-    .dash-left .dash-week { flex: 0 0 auto; height: 76px; gap: 4px; }
-    .dash-left .dash-week.second { border-left: none; padding-left: 0; }
-    .dash-left .dash-bar { max-width: 20px; }
-    .dash-left .dash-bar-col { gap: 3px; padding: 2px 0; }
-    .dash-left .dash-bar-v { font-size: 10px; }
-    .dash-left .dash-bar-lab { font-size: 10px; gap: 3px; }
-    .dash-left .dash-legend { font-size: 11px; gap: 12px; margin-bottom: 8px; }
-    .dash-left .dash-chart-head h3 { font-size: 12px; }
-    .dash-left .dash-section { flex: 0 0 auto; margin-bottom: 14px; }
-    .dash-left .dash-chart-wrap { flex: 0 0 auto; height: auto; }
+    /* ниже общий список на всю ширину, со своей прокруткой */
+    .dash-right { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
     /* таблица задач */
     .dash-table-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -964,37 +960,33 @@
       </div>
 
       <div id="view-dashboard">
+        <div class="dash-section">
+          <div class="dash-chart-head">
+            <h3 id="dash-chart-title">Текущая неделя</h3>
+            <button id="dash-week-now" onclick="resetDashWeek()">Сегодня</button>
+            <div class="dash-legend" id="dash-legend"></div>
+          </div>
+          <div class="dash-chart-wrap" id="dash-chart-wrap">
+            <button class="chart-nav" onclick="dashPage(-1)" aria-label="Назад">‹</button>
+            <div class="dash-chart" id="dash-chart"></div>
+            <button class="chart-nav" onclick="dashPage(1)" aria-label="Вперёд">›</button>
+          </div>
+        </div>
+
         <div class="dash-tiles" id="dash-tiles"></div>
 
-        <div class="dash-split">
-          <div class="dash-left">
-            <div class="dash-section">
-              <div class="dash-chart-head">
-                <h3 id="dash-chart-title">Текущая неделя</h3>
-                <button id="dash-week-now" onclick="resetDashWeek()">Сегодня</button>
-              </div>
-              <div class="dash-legend" id="dash-legend"></div>
-              <div class="dash-chart-wrap" id="dash-chart-wrap">
-                <button class="chart-nav" onclick="dashPage(-1)" aria-label="Предыдущая неделя">‹</button>
-                <div class="dash-chart" id="dash-chart"></div>
-                <button class="chart-nav" onclick="dashPage(1)" aria-label="Следующая неделя">›</button>
-              </div>
-            </div>
+        <div class="dash-right">
+          <div class="dash-table-head">
+            <h3>Задачи</h3>
+            <span class="dash-table-count" id="dash-table-count"></span>
           </div>
-
-          <div class="dash-right">
-            <div class="dash-table-head">
-              <h3>Задачи</h3>
-              <span class="dash-table-count" id="dash-table-count"></span>
-            </div>
-            <div class="dash-table-wrap">
-              <table class="dash-table">
-                <thead>
-                  <tr><th class="c-dot"></th><th>Задача</th><th class="c-proj">Проект</th><th class="c-due">Срок</th></tr>
-                </thead>
-                <tbody id="dash-table-body"></tbody>
-              </table>
-            </div>
+          <div class="dash-table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr><th class="c-dot"></th><th>Задача</th><th class="c-proj">Проект</th><th class="c-due">Срок</th></tr>
+              </thead>
+              <tbody id="dash-table-body"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -1728,7 +1720,7 @@ function toggleProjectShown(id) {
 }
 
 function dashPage(dir) {
-  shiftDashWeek(dir * DASH_WEEKS);
+  shiftDashWeek(dir * dashWeeks());
 }
 
 function resetDashWeek() {
@@ -2273,7 +2265,13 @@ function taskDragEnd(e) {
 }
 
 /* ==================== Дашборд по всем проектам ==================== */
-var DASH_WEEKS = 1;    // сколько недель показывает диаграмма дашборда
+// сколько недель показывает диаграмма: на планшете и компьютере три в ряд, на телефоне одна
+function dashWeeks() { return window.innerWidth >= 768 ? 3 : 1; }
+var _dashWide = window.innerWidth >= 768;
+window.addEventListener('resize', function() {
+  var wide = window.innerWidth >= 768;
+  if (wide !== _dashWide) { _dashWide = wide; if (globalView === 'dashboard') renderDashboard(); }
+});
 var hiddenProjects = [];   // проекты, снятые ползунком на дашборде
 var MAX_SEG = 8;       // выше столбик не растёт, сколько бы задач ни было
 
@@ -2361,7 +2359,7 @@ function renderDashChart(shownTasks, today) {
   document.body.classList.toggle('dash-other-week', dashWeekOffset !== 0);
 
   var weeks = [];
-  for (var w = 0; w < DASH_WEEKS; w++) {
+  for (var w = 0; w < dashWeeks(); w++) {
     var days = [];
     for (var i = 0; i < 7; i++) {
       var d = new Date(mon);
@@ -2383,7 +2381,7 @@ function renderDashChart(shownTasks, today) {
     weeks.push(days);
   }
 
-  var last = new Date(mon); last.setDate(mon.getDate() + 7 * DASH_WEEKS - 1);
+  var last = new Date(mon); last.setDate(mon.getDate() + 7 * dashWeeks() - 1);
   document.getElementById('dash-chart-title').textContent =
     'Задачи на ' + mon.getDate() +
     (mon.getMonth() === last.getMonth() ? '' : ' ' + MONTH_GEN[mon.getMonth()]) +
@@ -2404,9 +2402,9 @@ function renderDashChart(shownTasks, today) {
 
   var chart = document.getElementById('dash-chart');
   chart.innerHTML = '';
-  weeks.forEach(function(days, wi) {
+  weeks.forEach(function(days) {
     var row = document.createElement('div');
-    row.className = 'dash-week' + (wi ? ' second' : '');
+    row.className = 'dash-week';
     days.forEach(function(day) { row.appendChild(buildDayColumn(day, today)); });
     chart.appendChild(row);
   });
