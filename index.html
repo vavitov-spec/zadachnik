@@ -726,7 +726,11 @@
     .dash-table tbody tr:hover { background: var(--soft); }
     .dash-table .c-dot { width: 22px; padding-right: 0; }
     .dash-table .c-title { overflow: hidden; text-overflow: ellipsis; }
-    .dash-table .c-title.urgent { color: var(--red); }
+    /* цвет названия по типу: как точки важности, но оранжевый и серый
+       чуть темнее, чтобы текст читался на белом */
+    .dash-table .c-title.prio-high { color: var(--red); }
+    .dash-table .c-title.prio-normal { color: #c26e00; }
+    .dash-table .c-title.prio-low { color: #8e8e88; }
     .dash-table .c-proj { width: 28%; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dash-table .c-due { width: 22%; color: var(--muted); white-space: nowrap; }
     .dash-table .c-due.overdue { color: var(--red); font-weight: 600; }
@@ -2552,7 +2556,7 @@ function renderDashTable(shownTasks, today) {
     tr.appendChild(c1);
 
     var c2 = document.createElement('td');
-    c2.className = 'c-title' + ((t.priority || 'normal') === 'high' ? ' urgent' : '');
+    c2.className = 'c-title prio-' + (t.priority || 'normal');
     c2.textContent = t.title;
     tr.appendChild(c2);
 
