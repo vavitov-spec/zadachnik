@@ -950,9 +950,9 @@
         <div class="add-row">
           <input type="date" id="new-due" title="Срок">
           <select id="new-priority" title="Важность">
-            <option value="normal" selected>Важно</option>
+            <option value="normal">Важно</option>
             <option value="high">Срочно</option>
-            <option value="low">Херня</option>
+            <option value="low" selected>Херня</option>
           </select>
           <span class="spacer"></span>
           <button class="btn-icon" id="voice-btn" onclick="toggleVoice()" title="Диктовать задачу">🎤</button>
@@ -1431,7 +1431,7 @@ function addTask() {
   descEl.value = '';
   document.getElementById('new-due').value = '';
   syncDatePlaceholder(document.getElementById('new-due'));
-  document.getElementById('new-priority').value = 'normal';
+  document.getElementById('new-priority').value = 'low';
   titleEl.focus();
   saveTasks();
   render();
@@ -1630,7 +1630,7 @@ function createTaskFromDashboard() {
   var id = 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   tasks.push({
     id: id, title: '', description: '', projectId: currentProject, done: false,
-    priority: 'normal', due: null, time: null, createdAt: Date.now(), doneAt: null
+    priority: 'low', due: null, time: null, createdAt: Date.now(), doneAt: null
   });
   _draftTaskId = id;
   openTaskModal(id);
@@ -3020,7 +3020,7 @@ function saveParsed(data) {
       description: desc,
       projectId: projectId,
       done: false,
-      priority: ['high', 'normal', 'low'].indexOf(data.priority) !== -1 ? data.priority : 'normal',
+      priority: ['high', 'normal', 'low'].indexOf(data.priority) !== -1 ? data.priority : 'low',
       due: data.dueDate || null,
       time: data.time || null,
       createdAt: Date.now(),
