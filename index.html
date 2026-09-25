@@ -575,6 +575,8 @@
   .dash-tile .k { font-size: 13px; color: var(--muted); }
   .dash-tile .v { margin-left: auto; font-size: 19px; font-weight: 600; line-height: 1.2; }
   .dash-tile.warn .v { color: var(--red); }
+  .dash-tile.total { background: #fff; }
+  .dash-tile.total .k { color: var(--ink); font-weight: 600; }
 
   .dash-chart-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
   .dash-chart-head .dash-legend { margin: 0; }
@@ -668,6 +670,7 @@
   /* на телефоне плашки над диаграммой, как было */
   @media (max-width: 767px) {
     body.global-dashboard .dash-bottom { order: -1; }
+    .dash-tile.total { display: none; }
   }
 
   @media (min-width: 768px) {
@@ -2395,6 +2398,20 @@ function renderDashboard() {
 function renderDashTiles(active) {
   var el = document.getElementById('dash-tiles');
   el.innerHTML = '';
+
+  // первая плашка — сколько всего незавершённых задач
+  var all = document.createElement('div');
+  all.className = 'dash-tile total';
+  var ak = document.createElement('span');
+  ak.className = 'k';
+  ak.textContent = 'Всего';
+  var av = document.createElement('span');
+  av.className = 'v';
+  av.textContent = active.length;
+  all.appendChild(ak);
+  all.appendChild(av);
+  el.appendChild(all);
+
   ['high', 'normal', 'low'].forEach(function(prio) {
     var n = active.filter(function(t) { return (t.priority || 'normal') === prio; }).length;
     var tile = document.createElement('div');
